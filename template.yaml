@@ -19,6 +19,14 @@ Parameters:
     Type: String
     Description: "Name of deployment branch"
 
+  Hostname:
+    Type: String
+    Description: Site FQDN
+
+  DnsZoneId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Route53 Hosted Zone ID
+
 Resources:
 
   DdbTable:
@@ -36,10 +44,26 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
+  SiteCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref Hostname
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref Hostname
+          HostedZoneId: !Ref DnsZoneId
+
+
   RestApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: !Ref CodeBranch
+      Domain:
+        DomainName: !Ref Hostname
+        CertificateArn: !Ref SiteCertificate
+        Route53:
+          HostedZoneId: !Ref DnsZoneId
+        EndpointConfiguration: REGIONAL
       DefinitionBody:
         Fn::Transform:
           Name: "AWS::Include"

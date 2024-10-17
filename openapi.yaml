@@ -5,12 +5,9 @@ info:
   description: ServerlessOps Catalog API for Backstage
   version: 1.0.0
 servers:
-  - url: "https://api.catalog.backstage.serverlessops.io/{stage}"
-    description: Main API
-    variables:
-      stage:
-        default: main
-        description: Deployment stage
+  - url:
+      Fn::Sub: "https://${Hostname}"
+    description: Production endpoint
 x-amazon-apigateway-request-validators:
   all:
     validateRequestBody: true
