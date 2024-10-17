@@ -1,0 +1,29 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: serverlessops-catalog-api
+  description: backstage
+  annotations:
+    github.com/project-slug: ServerlessOpsIO/serverlessops-catalog-api
+spec:
+  type: api
+  lifecycle: production
+  owner: group:admins
+  system: ServerlessOps Catalog API
+  providesApis:
+    - resource:serverlessops-catalog-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: serverlessops-catalog-api
+  description: ServerlessOps Catalog API Definition
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:admins
+  description: backstage
+  definition:
+    $text: https://github.com/{{ cookiecutter.git_org }}/{{cookiecutter.service_name}}/blob/main/openapi.yaml

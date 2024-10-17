@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ServerlessOps Catalog API for Backstage
+
+Parameters:
+  Domain:
+    Type: String
+    Description: 'Application Platform'
+
+  System:
+    Type: String
+    Description: 'Application System'
+
+  Component:
+    Type: String
+    Description: 'Application Component'
+
+  CodeBranch:
+    Type: String
+    Description: "Name of deployment branch"
+
+Resources:
+
+  DdbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref CodeBranch
+      DefinitionBody:
+        Fn::Transform:
+          Name: "AWS::Include"
+          Parameters:
+            Location: "openapi.yaml"

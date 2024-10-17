@@ -1,0 +1,65 @@
+---
+openapi: 3.0.3
+info:
+  title: serverlessops-catalog-api API
+  description: ServerlessOps Catalog API for Backstage
+  version: 1.0.0
+servers:
+  - url: "https://api.catalog.backstage.serverlessops.io/{stage}"
+    description: Main API
+    variables:
+      stage:
+        default: main
+        description: Deployment stage
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: "all"
+
+paths:
+  "/health":
+    get:
+      summary: Health check
+      description: Get health of endpoint
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+            default: application/json; charset=utf-8
+      responses:
+        '200':
+          description: Success
+      security: []
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          "application/json": |
+            {
+              "statusCode": 200
+            }
+        responses:
+          "200":
+            statusCode: 200
+            responseTemplates:
+              "application/json": |
+                {
+                  "healthy": true
+                }
+
+components:
+  parameters:
+    pathEntityId:
+      name: entity_id
+      in: path
+      required: true
+      description: Requested Entity ID
+      schema:
+        type: string
+    headerContentTypeJson:
+      name: Content-Type
+      in: header
+      schema:
+        type: string
+        default: application/json; charset=utf-8
