@@ -20,14 +20,14 @@ paths:
       summary: Health check
       description: Get health of endpoint
       parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-            default: application/json; charset=utf-8
+        - $ref: "#/components/parameters/headerContentTypeJson"
       responses:
         '200':
           description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthCheckResponse"
       security:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/health.read
@@ -66,37 +66,82 @@ paths:
                   type: string
                 metadata:
                   type: object
+                  properties:
+                    namespace:
+                      type: string
+                    name:
+                      type: string
+                    title:
+                      type: string
+                    annotations:
+                      type: object
+                  required:
+                    - name
+                  additionalProperties: true
                 spec:
                   type: object
+                  properties:
+                    owner:
+                      type: string
+                    type:
+                      type: string
+              required:
+                - apiVersion
+                - kind
+                - metadata
       responses:
         '201':
           description: Created
           content:
             application/json:
               schema:
-                type: object
-                properties: {}
+                $ref: "#/components/schemas/EmptyResponse"
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '502':
+          description: Unexpected upstream error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
       security:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.write
       x-amazon-apigateway-integration:
         type: AWS
         httpMethod: POST
-        url:
+        uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/BatchWriteItem"
         credentials:
           Fn::Sub: ${RestApiIamRole.Arn}
+        passthroughBehavior: NEVER
         requestTemplates:
           "application/json":
+            # FIXME: This doesn't handle nessted maps and arrays.
             Fn::Sub: |
-              #set($namespace = $input.path("$.metadata.namespace"))
-              #set($kind = $input.path("$.kind"))
-              #set($name = $input.path("$.metadata.names"))
+              #set ($root=$input.path('$'))
+              #if ($root.namespace != '')
+                #set($namespace = $root.metadata.namespace)
+              #else
+                #set($namespace = "default")
+              #end
+              #set($kind = $root.kind.toLowerCase())
+              #set($name = $root.metadata.name)
               {
                 "RequestItems": {
                   "${DdbTable}": [
                     {
-                      "PutItemRequest": {
+                      "PutRequest": {
                         "Item": {
                           "pk": {
                             "S": "$namespace/$kind/$name"
@@ -108,16 +153,74 @@ paths:
                             "S": "entity"
                           },
                           "apiVersion": {
-                            "S": "$input.path('$.apiVersion')"
+                            "S": "$root.apiVersion"
                           },
-                          "kind: {
-                            "S": "$input.path('$.kind')"
+                          "kind": {
+                            "S": "$root.kind"
                           },
                           "metadata": {
-                            "M": $input.json('$.metadata')
+                            "M": {
+                            #foreach($pair in $root.metadata.entrySet())
+                              #if( $pair.value.class.name == "java.lang.String" )
+                                "$pair.key": {
+                                  "S": "$pair.value"
+                                }#if($foreach.hasNext),#end
+                              #elseif( $pair.value.class.name == "net.minidev.json.JSONArray" )
+                                "$pair.key": {
+                                  "L": [
+                                  #foreach($item in $pair.value)
+                                    {
+                                      "S": "$item"
+                                    }
+                                    #if($foreach.hasNext),#end
+                                  #end
+                                  ]
+                                }#if($foreach.hasNext),#end
+                              #elseif( $pair.value.class.name == "java.util.LinkedHashMap" )
+                                "$pair.key": {
+                                  "M": {
+                                  #foreach($subpair in $pair.value.entrySet())
+                                    "$subpair.key": {
+                                      "S": "$subpair.value"
+                                    }#if($foreach.hasNext),#end
+                                  #end
+                                  }
+                                }#if($foreach.hasNext),#end
+                              #end
+                            #end
+                            }
                           },
                           "spec": {
-                            "M": $input.json('$.spec')
+                            "M": {
+                            #foreach($pair in $root.spec.entrySet())
+                              #if( $pair.value.class.name == "java.lang.String" )
+                                "$pair.key": {
+                                  "S": "$pair.value"
+                                }#if($foreach.hasNext),#end
+                              #elseif( $pair.value.class.name == "net.minidev.json.JSONArray" )
+                                "$pair.key": {
+                                  "L": [
+                                  #foreach($item in $pair.value)
+                                    {
+                                      "S": "$item"
+                                    }
+                                    #if($foreach.hasNext),#end
+                                  #end
+                                  ]
+                                }#if($foreach.hasNext),#end
+                              #elseif( $pair.value.class.name == "java.util.LinkedHashMap" )
+                                "$pair.key": {
+                                  "M": {
+                                  #foreach($subpair in $pair.value.entrySet())
+                                    "$subpair.key": {
+                                      "S": "$subpair.value"
+                                    }#if($foreach.hasNext),#end
+                                  #end
+                                  }
+                                }#if($foreach.hasNext),#end
+                              #end
+                            #end
+                            }
                           }
                         }
                       }
@@ -126,19 +229,71 @@ paths:
                 }
               }
         responses:
+          "2\\d{2}":
+            statusCode: 201
+            responseTemplates:
+              "application/json": |
+                {}
+          "4\\d{2}":
+            statusCode: 400
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          "5\\d{2}":
+            statusCode: 500
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          default:
+            statusCode: 502
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          "4\\d{2}":
+            statusCode: 400
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          "5\\d{2}":
+            statusCode: 500
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
           default:
             statusCode: 201
             responseTemplates:
               "application/json": |
-                #set($inputRoot = $input.path("$"))
-                {
-                    "path": "",
-                    "input": $input,
-                    inputRoot: $inputRoot
-                }
+                {}
 
 
 components:
+  schemas:
+    EmptyResponse:
+      type: object
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    HealthCheckResponse:
+      type: object
+      properties:
+        healthy:
+          type: boolean
+      required:
+        - healthy
   parameters:
     pathEntityId:
       name: entity_id
