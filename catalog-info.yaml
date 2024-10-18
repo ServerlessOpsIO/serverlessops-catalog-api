@@ -24,6 +24,5 @@ spec:
   type: openapi
   lifecycle: production
   owner: group:admins
-  description: backstage
   definition:
     $text: https://github.com/{{ cookiecutter.git_org }}/{{cookiecutter.service_name}}/blob/main/openapi.yaml
