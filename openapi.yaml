@@ -58,7 +58,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "https://raw.githubusercontent.com/backstage/backstage/refs/heads/master/plugins/catalog-backend/src/schema/openapi.yaml#/components/schemas/Entity"
+              type: object
+              properties:
+                apiVersion:
+                  type: string
+                kind:
+                  type: string
+                metadata:
+                  type: object
+                spec:
+                  type: object
       responses:
         '201':
           description: Created
