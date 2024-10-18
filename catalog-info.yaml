@@ -25,4 +25,4 @@ spec:
   lifecycle: production
   owner: group:admins
   definition:
-    $text: https://github.com/{{ cookiecutter.git_org }}/{{cookiecutter.service_name}}/blob/main/openapi.yaml
+    $text: https://github.com/ServerlessOpsIO/serverlessops-catalog-api/blob/main/openapi.yaml
