@@ -47,6 +47,88 @@ paths:
                   "healthy": true
                 }
 
+  "/catalog":
+    post:
+      summary: Create catalog item
+      description: Create catalog item
+      parameters:
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "https://raw.githubusercontent.com/backstage/backstage/refs/heads/master/plugins/catalog-backend/src/schema/openapi.yaml#/components/schemas/Entity"
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.write
+      x-amazon-apigateway-integration:
+        type: AWS
+        httpMethod: POST
+        url:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/BatchWriteItem"
+        credentials:
+          Fn::Sub: ${RestApiIamRole.Arn}
+        requestTemplates:
+          "application/json":
+            Fn::Sub: |
+              #set($namespace = $input.path("$.metadata.namespace"))
+              #set($kind = $input.path("$.kind"))
+              #set($name = $input.path("$.metadata.names"))
+              {
+                "RequestItems": {
+                  "${DdbTable}": [
+                    {
+                      "PutItemRequest": {
+                        "Item": {
+                          "pk": {
+                            "S": "$namespace/$kind/$name"
+                          },
+                          "sk": {
+                            "S": "$namespace/$kind/$name"
+                          },
+                          "itemType": {
+                            "S": "entity"
+                          },
+                          "apiVersion": {
+                            "S": "$input.path('$.apiVersion')"
+                          },
+                          "kind: {
+                            "S": "$input.path('$.kind')"
+                          },
+                          "metadata": {
+                            "M": $input.json('$.metadata')
+                          },
+                          "spec": {
+                            "M": $input.json('$.spec')
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+        responses:
+          default:
+            statusCode: 201
+            responseTemplates:
+              "application/json": |
+                #set($inputRoot = $input.path("$"))
+                {
+                    "path": "",
+                    "input": $input,
+                    inputRoot: $inputRoot
+                }
+
+
 components:
   parameters:
     pathEntityId:
