@@ -73,4 +73,6 @@ components:
           - Ref: CognitoUserPoolArn
         type: COGNITO_USER_POOLS
         identitySource: method.request.header.Authorization
-        identityValidationExpression: "^Bearer [^\\s]+$"
+        # Not sure why this breaks requests. Leaving this here as a note to not enable this
+        # confoguration.
+        #identityValidationExpression: "^Bearer [^\\s]+$"
