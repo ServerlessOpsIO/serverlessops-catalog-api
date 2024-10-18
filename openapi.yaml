@@ -28,7 +28,9 @@ paths:
       responses:
         '200':
           description: Success
-      security: []
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/health.read
       x-amazon-apigateway-integration:
         type: mock
         requestTemplates:
@@ -60,3 +62,15 @@ components:
       schema:
         type: string
         default: application/json; charset=utf-8
+  securitySchemes:
+    serverlessOpsCognitoPool:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: cognito_user_pools
+      x-amazon-apigateway-authorizer:
+        providerARNs:
+          - Ref: CognitoUserPoolArn
+        type: COGNITO_USER_POOLS
+        identitySource: method.request.header.Authorization
+        identityValidationExpression: "^Bearer [^\\s]+$"

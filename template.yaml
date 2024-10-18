@@ -27,6 +27,10 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Route53 Hosted Zone ID
 
+  CognitoUserPoolArn:
+    Type: String
+    Description: Cognito User Pool ARN
+
 Resources:
 
   DdbTable:
