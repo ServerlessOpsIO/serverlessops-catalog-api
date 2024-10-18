@@ -3,7 +3,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: serverlessops-catalog-api
-  description: backstage
+  description: ServerlessOps Catalog API
   annotations:
     github.com/project-slug: ServerlessOpsIO/serverlessops-catalog-api
 spec:
