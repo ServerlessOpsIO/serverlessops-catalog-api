@@ -255,6 +255,85 @@ paths:
                 {
                   "message": "$input.path('$.Message')"
                 }
+
+  "/catalog/{namespace}/{kind}":
+    get:
+      summary: List catalog items
+      description: List catalog items
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/kind"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of items to return
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          description: Offset to start from
+          schema:
+            type: integer
+            default: 0
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '502':
+          description: Unexpected upstream error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.read
+      x-amazon-apigateway-integration:
+        type: AWS
+        httpMethod: GET
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/Query"
+        credentials:
+          Fn::Sub: ${RestApiIamRole.Arn}
+        passthroughBehavior: NEVER
+        requestTemplates:
+          "application/json":
+            Fn::Sub: |
+              {
+                "TableName": "${DdbTable}",
+                "KeyConditionExpression": "pk = :pk",
+                "ExpressionAttributeValues": {
+                  ":pk": {
+                    "S": "$input.params('namespace')/$input.params('kind')"
+                  }
+                },
+                "Limit": "$input.params('limit')",
+                "Offset": "$input.params('offset')"
+              }
+        responses:
+          "2\\d{2}":
+            statusCode: 200
+            responseTemplates:
+              "application/json": |
+                $input.json('$')
           "4\\d{2}":
             statusCode: 400
             responseTemplates:
@@ -270,12 +349,99 @@ paths:
                   "message": "$input.path('$.Message')"
                 }
           default:
-            statusCode: 201
+            statusCode: 502
             responseTemplates:
               "application/json": |
-                {}
+                {
+                  "message": "$input.path('$.Message')"
+                }
 
-
+  "/catalog/{namespace}/{kind}/{name}":
+    get:
+      summary: Get catalog item
+      description: Get catalog item
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/kind"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '502':
+          description: Unexpected upstream error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.read
+      x-amazon-apigateway-integration:
+        type: AWS
+        httpMethod: GET
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem"
+        credentials:
+          Fn::Sub: ${RestApiIamRole.Arn}
+        passthroughBehavior: NEVER
+        requestTemplates:
+          "application/json":
+            Fn::Sub: |
+              {
+                "TableName": "${DdbTable}",
+                "Key": {
+                  "pk": {
+                    "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
+                  },
+                  "sk": {
+                    "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
+                  }
+                }
+              }
+        responses:
+          "2\\d{2}":
+            statusCode: 200
+            responseTemplates:
+              "application/json": |
+                $input.json('$')
+          "4\\d{2}":
+            statusCode: 400
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          "5\\d{2}":
+            statusCode: 500
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
+          default:
+            statusCode: 502
+            responseTemplates:
+              "application/json": |
+                {
+                  "message": "$input.path('$.Message')"
+                }
 components:
   schemas:
     EmptyResponse:
@@ -295,11 +461,25 @@ components:
       required:
         - healthy
   parameters:
-    pathEntityId:
-      name: entity_id
+    namespace:
+      name: namespace
       in: path
       required: true
-      description: Requested Entity ID
+      description: Requested Entity namespace
+      schema:
+        type: string
+    kind:
+      name: kind
+      in: path
+      required: true
+      description: Requested Entity kind
+      schema:
+        type: string
+    name:
+      name: name
+      in: path
+      required: true
+      description: Requested Entity name
       schema:
         type: string
     headerContentTypeJson:
