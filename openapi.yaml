@@ -144,7 +144,7 @@ paths:
                       "PutRequest": {
                         "Item": {
                           "pk": {
-                            "S": "$namespace/$kind/$name"
+                            "S": "$namespace/$kind"
                           },
                           "sk": {
                             "S": "$namespace/$kind/$name"
@@ -308,7 +308,7 @@ paths:
           - Fn::Sub: https://${Hostname}/catalog.read
       x-amazon-apigateway-integration:
         type: AWS
-        httpMethod: GET
+        httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/Query"
         credentials:
@@ -319,14 +319,16 @@ paths:
             Fn::Sub: |
               {
                 "TableName": "${DdbTable}",
-                "KeyConditionExpression": "pk = :pk",
+                "KeyConditionExpression": "#pk = :pk",
                 "ExpressionAttributeValues": {
-                  ":pk": {
-                    "S": "$input.params('namespace')/$input.params('kind')"
-                  }
+                  ":pk": { "S": "$input.params('namespace')/$input.params('kind')" },
+                  ":itemType": { "S": "entity" }
                 },
-                "Limit": "$input.params('limit')",
-                "Offset": "$input.params('offset')"
+                "ExpressionAttributeNames": {
+                  "#pk": "pk",
+                  "#itemType": "itemType"
+                },
+                "FilterExpression": "#itemType = :itemType"
               }
         responses:
           "2\\d{2}":
@@ -395,7 +397,7 @@ paths:
           - Fn::Sub: https://${Hostname}/catalog.read
       x-amazon-apigateway-integration:
         type: AWS
-        httpMethod: GET
+        httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem"
         credentials:
@@ -408,7 +410,7 @@ paths:
                 "TableName": "${DdbTable}",
                 "Key": {
                   "pk": {
-                    "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
+                    "S": "$input.params('namespace')/$input.params('kind')"
                   },
                   "sk": {
                     "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
@@ -420,7 +422,7 @@ paths:
             statusCode: 200
             responseTemplates:
               "application/json": |
-                $input.json('$')
+                $input.json('$.Item')
           "4\\d{2}":
             statusCode: 400
             responseTemplates:
