@@ -328,7 +328,8 @@ paths:
                   "#pk": "pk",
                   "#itemType": "itemType"
                 },
-                "FilterExpression": "#itemType = :itemType"
+                "FilterExpression": "#itemType = :itemType",
+                "ProjectionExpression": "sk"
               }
         responses:
           "2\\d{2}":
@@ -415,7 +416,8 @@ paths:
                   "sk": {
                     "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
                   }
-                }
+                },
+                "ProjectionExpression": "apiVersion, kind, metadata, spec"
               }
         responses:
           "2\\d{2}":
