@@ -171,8 +171,7 @@ paths:
                                   #foreach($item in $pair.value)
                                     {
                                       "S": "$item"
-                                    }
-                                    #if($foreach.hasNext),#end
+                                    }#if($foreach.hasNext),#end
                                   #end
                                   ]
                                 }#if($foreach.hasNext),#end
@@ -203,8 +202,7 @@ paths:
                                   #foreach($item in $pair.value)
                                     {
                                       "S": "$item"
-                                    }
-                                    #if($foreach.hasNext),#end
+                                    }#if($foreach.hasNext),#end
                                   #end
                                   ]
                                 }#if($foreach.hasNext),#end
