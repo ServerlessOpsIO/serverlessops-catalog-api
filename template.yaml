@@ -83,6 +83,11 @@ Resources:
                   - dynamodb:DeleteItem
                 Resource: !GetAtt DdbTable.Arn
 
+  RestApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/api-gateway/${AWS::StackName}"
+
   RestApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -93,6 +98,8 @@ Resources:
         Route53:
           HostedZoneId: !Ref DnsZoneId
         EndpointConfiguration: REGIONAL
+      AccessLogSetting:
+        DestinationArn: !GetAtt RestApiLogGroup.Arn
       DefinitionBody:
         Fn::Transform:
           Name: "AWS::Include"
