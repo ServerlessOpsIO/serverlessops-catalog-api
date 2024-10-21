@@ -1,0 +1,51 @@
+{
+  "name": "serverlessops-catalog-api",
+  "version": "0.0.1",
+  "description": "ServerlessOps Catalog API for Backstage",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ServerlessOpsIO/serverlessops-catalog-api.git"
+  },
+  "author": {
+    "name": "Tom McLaughlin",
+    "email": "tom@serverlessops.io"
+  },
+  "license": "BSD-2-Clause",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "yarn@4.4.1",
+  "scripts": {
+    "build": "yarn run clean && yarn run compile",
+    "clean": "rm -rf dist .aws-sam",
+    "compile": "node_modules/typescript/bin/tsc",
+    "compile:full": "node_modules/typescript/bin/tsc --skipLibCheck false --incremental false",
+    "compile:watch": "node_modules/typescript/bin/tsc --watch",
+    "lint": "eslint '--flag unstable_ts_config *.ts' --quiet --fix",
+    "test": "npm run compile && npm run unit",
+    "test:unit": "jest",
+    "sam:build": "sam build",
+    "sam:package": "sam package"
+  },
+  "devDependencies": {
+    "@backstage/catalog-model": "^1.7.0",
+    "@tsconfig/node20": "^20.1.4",
+    "@types/aws-lambda": "^8.10.145",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.7.7",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.13.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.10.0"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.9.0",
+    "@aws-sdk/client-dynamodb": "^3.675.0",
+    "@aws-sdk/util-dynamodb": "^3.675.0"
+  }
+}

@@ -31,8 +31,25 @@ Parameters:
     Type: String
     Description: Cognito User Pool ARN
 
-Resources:
+  EnableSourceMaps:
+    Type: String
+    Description: Enable source maps for debugging
+    Default: false
 
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 5
+    MemorySize: 128
+    Environment:
+      Variables:
+        DDB_TABLE_NAME: !Ref DdbTable
+        POWERTOOLS_SERVICE_NAME: !Ref AWS::StackName
+
+
+Resources:
+  # DDB
   DdbTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -48,6 +65,55 @@ Resources:
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
 
+  # Functions
+  CreateEntityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/CreateEntity/function.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DdbTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: !Ref EnableSourceMaps
+        EntryPoints:
+          - src/handlers/CreateEntity/function.ts
+
+  CreateEntityFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CreateEntityFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+
+  GetEntityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handlers/GetEntity/function.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DdbTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: !Ref EnableSourceMaps
+        EntryPoints:
+          - src/handlers/GetEntity/function.ts
+
+  GetEntityFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt GetEntityFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  # APIG
   SiteCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -75,12 +141,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - dynamodb:Query
-                  - dynamodb:BatchGetItem
-                  - dynamodb:BatchWriteItem
-                  - dynamodb:PutItem
-                  - dynamodb:GetItem
-                  - dynamodb:UpdateItem
-                  - dynamodb:DeleteItem
                 Resource: !GetAtt DdbTable.Arn
 
   RestApiLogGroup:

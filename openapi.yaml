@@ -95,7 +95,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmptyResponse"
+                $ref: "#/components/schemas/CreateEntityResponse"
         '400':
           description: Client failure
           content:
@@ -118,141 +118,10 @@ paths:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.write
       x-amazon-apigateway-integration:
-        type: AWS
+        type: AWS_PROXY
         httpMethod: POST
         uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/BatchWriteItem"
-        credentials:
-          Fn::Sub: ${RestApiIamRole.Arn}
-        passthroughBehavior: NEVER
-        requestTemplates:
-          "application/json":
-            # FIXME: This doesn't handle nessted maps and arrays.
-            Fn::Sub: |
-              #set ($root=$input.path('$'))
-              #if ($root.namespace != '')
-                #set($namespace = $root.metadata.namespace)
-              #else
-                #set($namespace = "default")
-              #end
-              #set($kind = $root.kind.toLowerCase())
-              #set($name = $root.metadata.name)
-              {
-                "RequestItems": {
-                  "${DdbTable}": [
-                    {
-                      "PutRequest": {
-                        "Item": {
-                          "pk": {
-                            "S": "$namespace/$kind"
-                          },
-                          "sk": {
-                            "S": "$namespace/$kind/$name"
-                          },
-                          "itemType": {
-                            "S": "entity"
-                          },
-                          "apiVersion": {
-                            "S": "$root.apiVersion"
-                          },
-                          "kind": {
-                            "S": "$root.kind"
-                          },
-                          "metadata": {
-                            "M": {
-                            #foreach($pair in $root.metadata.entrySet())
-                              #if( $pair.value.class.name == "java.lang.String" )
-                                "$pair.key": {
-                                  "S": "$pair.value"
-                                }#if($foreach.hasNext),#end
-                              #elseif( $pair.value.class.name == "net.minidev.json.JSONArray" )
-                                "$pair.key": {
-                                  "L": [
-                                  #foreach($item in $pair.value)
-                                    {
-                                      "S": "$item"
-                                    }#if($foreach.hasNext),#end
-                                  #end
-                                  ]
-                                }#if($foreach.hasNext),#end
-                              #elseif( $pair.value.class.name == "java.util.LinkedHashMap" )
-                                "$pair.key": {
-                                  "M": {
-                                  #foreach($subpair in $pair.value.entrySet())
-                                    "$subpair.key": {
-                                      "S": "$subpair.value"
-                                    }#if($foreach.hasNext),#end
-                                  #end
-                                  }
-                                }#if($foreach.hasNext),#end
-                              #end
-                            #end
-                            }
-                          },
-                          "spec": {
-                            "M": {
-                            #foreach($pair in $root.spec.entrySet())
-                              #if( $pair.value.class.name == "java.lang.String" )
-                                "$pair.key": {
-                                  "S": "$pair.value"
-                                }#if($foreach.hasNext),#end
-                              #elseif( $pair.value.class.name == "net.minidev.json.JSONArray" )
-                                "$pair.key": {
-                                  "L": [
-                                  #foreach($item in $pair.value)
-                                    {
-                                      "S": "$item"
-                                    }#if($foreach.hasNext),#end
-                                  #end
-                                  ]
-                                }#if($foreach.hasNext),#end
-                              #elseif( $pair.value.class.name == "java.util.LinkedHashMap" )
-                                "$pair.key": {
-                                  "M": {
-                                  #foreach($subpair in $pair.value.entrySet())
-                                    "$subpair.key": {
-                                      "S": "$subpair.value"
-                                    }#if($foreach.hasNext),#end
-                                  #end
-                                  }
-                                }#if($foreach.hasNext),#end
-                              #end
-                            #end
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-        responses:
-          "2\\d{2}":
-            statusCode: 201
-            responseTemplates:
-              "application/json": |
-                {}
-          "4\\d{2}":
-            statusCode: 400
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
-          "5\\d{2}":
-            statusCode: 500
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
-          default:
-            statusCode: 502
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateEntityFunction.Arn}/invocations"
 
   "/catalog/{namespace}/{kind}":
     get:
@@ -408,57 +277,20 @@ paths:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.read
       x-amazon-apigateway-integration:
-        type: AWS
+        type: AWS_PROXY
         httpMethod: POST
         uri:
-          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:dynamodb:action/GetItem"
-        credentials:
-          Fn::Sub: ${RestApiIamRole.Arn}
-        passthroughBehavior: NEVER
-        requestTemplates:
-          "application/json":
-            Fn::Sub: |
-              {
-                "TableName": "${DdbTable}",
-                "Key": {
-                  "pk": {
-                    "S": "$input.params('namespace')/$input.params('kind')"
-                  },
-                  "sk": {
-                    "S": "$input.params('namespace')/$input.params('kind')/$input.params('name')"
-                  }
-                },
-                "ProjectionExpression": "apiVersion, kind, metadata, spec"
-              }
-        responses:
-          "2\\d{2}":
-            statusCode: 200
-            responseTemplates:
-              "application/json": |
-                $input.json('$.Item')
-          "4\\d{2}":
-            statusCode: 400
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
-          "5\\d{2}":
-            statusCode: 500
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
-          default:
-            statusCode: 502
-            responseTemplates:
-              "application/json": |
-                {
-                  "message": "$input.path('$.Message')"
-                }
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEntityFunction.Arn}/invocations"
+
 components:
   schemas:
+    CreateEntityResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+      required:
+        - request_id
     EmptyResponse:
       type: object
     ErrorResponse:
