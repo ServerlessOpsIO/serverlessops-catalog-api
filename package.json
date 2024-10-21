@@ -24,7 +24,7 @@
     "lint": "eslint '--flag unstable_ts_config *.ts' --quiet --fix",
     "test": "npm run compile && npm run unit",
     "test:unit": "jest",
-    "sam:build": "sam build",
+    "sam:build": "sam build --parallel",
     "sam:package": "sam package"
   },
   "devDependencies": {
