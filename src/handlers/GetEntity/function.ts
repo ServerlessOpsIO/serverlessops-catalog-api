@@ -26,7 +26,6 @@ const DDB_CLIENT = new DynamoDBClient()
 const DDB_TABLE_NAME = process.env.DDB_TABLE_NAME || ''
 
 
-
 export async function getEntity(
     namespace: string,
     kind: string,

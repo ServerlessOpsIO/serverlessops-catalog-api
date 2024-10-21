@@ -17,6 +17,19 @@ jobs:
       - name: Setup job workspace
         uses: ServerlessOpsIO/gha-setup-workspace@v1
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Yarn via corepack
+        shell: bash
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: bash
+        run: yarn install --immutable
+
       - name: Assume AWS Credentials
         uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
         with:
@@ -25,12 +38,16 @@ jobs:
       - name: Install AWS SAM
         uses: aws-actions/setup-sam@v2
 
-
       - name: Validate template
         run: sam validate --lint
 
+      # TODO: Need to run tests when we have them
+
+      - name: Compile Typescript
+        run: yarn run build
+
       - name: Build artifact
-        run: sam build --parallel --template template.yaml
+        run: yarn run sam:build
 
       - name: Store Artifacts
         uses: ServerlessOpsIO/gha-store-artifacts@v1

@@ -2,6 +2,7 @@
   "name": "serverlessops-catalog-api",
   "version": "0.0.1",
   "description": "ServerlessOps Catalog API for Backstage",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git@github.com:ServerlessOpsIO/serverlessops-catalog-api.git"
@@ -24,8 +25,9 @@
     "lint": "eslint '--flag unstable_ts_config *.ts' --quiet --fix",
     "test": "npm run compile && npm run unit",
     "test:unit": "jest",
-    "sam:build": "sam build",
-    "sam:package": "sam package"
+    "sam:build": "sam build --parallel",
+    "sam:package": "sam package",
+    "sam:deploy": "sam deploy"
   },
   "devDependencies": {
     "@backstage/catalog-model": "^1.7.0",

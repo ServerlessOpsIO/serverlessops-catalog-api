@@ -69,7 +69,8 @@ Resources:
   CreateEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/CreateEntity/function.handler
+      CodeUri: ./dist/handlers/CreateEntity
+      Handler: function.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DdbTable
@@ -78,9 +79,13 @@ Resources:
       BuildProperties:
         Minify: true
         Target: "es2020"
+        Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
+        OutExtension:
+          - .js=.mjs
         EntryPoints:
-          - src/handlers/CreateEntity/function.ts
+          - function.js
 
   CreateEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
@@ -93,7 +98,8 @@ Resources:
   GetEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/handlers/GetEntity/function.handler
+      CodeUri: ./dist/handlers/GetEntity
+      Handler: function.handler
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DdbTable
@@ -102,9 +108,13 @@ Resources:
       BuildProperties:
         Minify: true
         Target: "es2020"
+        Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
+        OutExtension:
+          - .js=.mjs
         EntryPoints:
-          - src/handlers/GetEntity/function.ts
+          - function.js
 
   GetEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
