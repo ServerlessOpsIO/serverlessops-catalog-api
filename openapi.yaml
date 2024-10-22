@@ -316,9 +316,18 @@ components:
         - request_id
     EmptyResponse:
       type: object
+    RequestIdResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+      required:
+        - request_id
     ErrorResponse:
       type: object
       properties:
+        name:
+          type: string
         message:
           type: string
       required:

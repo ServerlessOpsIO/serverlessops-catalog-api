@@ -89,7 +89,10 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
                 statusCode = 500
                 break;
         }
-        body = JSON.stringify({error: (<Error>error).message})
+        body = JSON.stringify({
+            name: (<Error>error).name,
+            message: (<Error>error).message
+        })
     }
 
 
