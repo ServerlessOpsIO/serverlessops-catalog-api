@@ -25,12 +25,29 @@ const LOGGER = new Logger()
 const DDB_CLIENT = new DynamoDBClient()
 const DDB_TABLE_NAME = process.env.DDB_TABLE_NAME || ''
 
+interface Item extends Entity {
+    pk: string
+    sk: string
+    itemType: string
+}
+
 export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
     let output: PutItemCommandOutput
 
+    const namespace = entity.metadata.namespace
+    const kind = entity.kind.toLowerCase()
+    const name = entity.metadata.name
+
+    const item: Item = {
+        'pk': `${namespace}/${kind}`,
+        'sk': `${namespace}/${kind}/${name}`,
+        'itemType': 'entity',
+        ...entity
+    }
+
     const params: PutItemCommandInput = {
         TableName: DDB_TABLE_NAME,
-        Item: marshall(entity)
+        Item: marshall(item)
     }
 
     try {
