@@ -123,6 +123,34 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 
+  DeleteEntityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/handlers/DeleteEntity
+      Handler: function.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DdbTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
+        Sourcemap: !Ref EnableSourceMaps
+        OutExtension:
+          - .js=.mjs
+        EntryPoints:
+          - function.js
+
+  DeleteEntityFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt DeleteEntityFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
   # APIG
   SiteCertificate:
     Type: AWS::CertificateManager::Certificate

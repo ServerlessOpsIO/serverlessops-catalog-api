@@ -281,7 +281,47 @@ paths:
         httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetEntityFunction.Arn}/invocations"
-
+    delete:
+      summary: Delete catalog item
+      description: Delete catalog item
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/kind"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '502':
+          description: Unexpected upstream error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.write
+      x-amazon-apigateway-integration:
+        type: AWS_PROXY
+        httpMethod: POST
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEntityFunction.Arn}/invocations"
 components:
   schemas:
     CreateEntityResponse:
