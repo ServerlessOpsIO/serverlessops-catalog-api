@@ -31,7 +31,8 @@ export async function deleteEntity(
         Key: {
             'pk': {S: `${namespace}/${kind}`},
             'sk': {S: `${namespace}/${kind}/${name}`}
-        }
+        },
+        ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)'
     }
 
     try {
