@@ -38,12 +38,13 @@ export async function deleteEntity(
     try {
         const command = new DeleteItemCommand(params)
         output = await DDB_CLIENT.send(command)
-        LOGGER.info('DeleteItemCommand succeeded', { output })
+        LOGGER.debug('DeleteItemCommand succeeded', { output })
     } catch (error) {
-        LOGGER.error('DeleteItemCommand failed', {
-            error: (<DynamoDBServiceException>error).name,
-            message: error
-         })
+        LOGGER.error({
+            error: <DynamoDBServiceException>error,
+            name: (<DynamoDBServiceException>error).name,
+            message: (<DynamoDBServiceException>error).message,
+        })
         throw error
     }
 
@@ -52,7 +53,7 @@ export async function deleteEntity(
 
 
 export async function handler (event: APIGatewayProxyEvent, _: Context): Promise<APIGatewayProxyResult> {
-    LOGGER.info('Received event', { event })
+    LOGGER.debug('Received event', { event })
 
     const namespace = event.pathParameters?.namespace as string
     const kind = event.pathParameters?.kind as string
@@ -69,6 +70,7 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
         statusCode = 200
         body = JSON.stringify({'request_id':output.$metadata.requestId})
     } catch (error) {
+        LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
         switch (fault) {
             case 'client':

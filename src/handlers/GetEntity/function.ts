@@ -44,12 +44,13 @@ export async function getEntity(
     try {
         const command = new GetItemCommand(params)
         output = await DDB_CLIENT.send(command)
-        LOGGER.info('GetItemCommand succeeded', { output })
+        LOGGER.debug('GetItemCommand succeeded', { output })
     } catch (error) {
-        LOGGER.error('GetItemCommand failed', {
-            error: (<DynamoDBServiceException>error).name,
-            message: error
-         })
+        LOGGER.error({
+            error: <DynamoDBServiceException>error,
+            name: (<DynamoDBServiceException>error).name,
+            message: (<DynamoDBServiceException>error).message,
+        })
         throw error
     }
 
@@ -64,7 +65,7 @@ export async function getEntity(
 
 
 export async function handler (event: APIGatewayProxyEvent, _: Context): Promise<APIGatewayProxyResult> {
-    LOGGER.info('Received event', { event })
+    LOGGER.debug('Received event', { event })
 
     const namespace = event.pathParameters?.namespace as string
     const kind = event.pathParameters?.kind as string
@@ -81,6 +82,7 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
         statusCode = 200
         body = JSON.stringify(entity)
     } catch (error) {
+        LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
         switch (fault) {
             case 'client':

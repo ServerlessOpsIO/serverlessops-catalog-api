@@ -55,11 +55,12 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
     try {
         const command = new PutItemCommand(params)
         output = await DDB_CLIENT.send(command)
-        LOGGER.info('PutItemCommand succeeded', { output })
+        LOGGER.debug('PutItemCommand succeeded', { output })
     } catch (error) {
-        LOGGER.error('PutItemCommand failed', {
-            error: (<DynamoDBServiceException>error).name,
-            message: error
+        LOGGER.error({
+            name: (<DynamoDBServiceException>error).name,
+            message: (<DynamoDBServiceException>error).message,
+            error: <DynamoDBServiceException>error,
         })
         throw error
     }
@@ -69,7 +70,7 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
 
 
 export async function handler (event: APIGatewayProxyEvent, _: Context): Promise<APIGatewayProxyResult> {
-    LOGGER.info('Received event', { event })
+    LOGGER.debug('Received event', { event })
 
     const entity: Entity = JSON.parse(event.body || '{}')   // Already validated body at Gateway
 
@@ -80,6 +81,7 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
         statusCode = 201
         body = JSON.stringify({'request_id': output.$metadata.requestId})
     } catch (error) {
+        LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
         switch (fault) {
             case 'client':
