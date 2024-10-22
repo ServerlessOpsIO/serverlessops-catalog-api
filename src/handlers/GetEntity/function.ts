@@ -15,7 +15,6 @@ import {
 import {
     unmarshall
 } from '@aws-sdk/util-dynamodb'
-
 import {
     Entity
 } from '@backstage/catalog-model'
@@ -31,8 +30,6 @@ export async function getEntity(
     kind: string,
     name: string
 ): Promise<Entity> {
-    let entity: Entity
-
     const params: GetItemCommandInput = {
         TableName: DDB_TABLE_NAME,
         Key: {
