@@ -12,6 +12,8 @@ import {
     DeleteItemCommandInput,
     DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
+import { SuccessResponseType } from '../../lib/SuccessResponseType.js'
+import { ErrorResponseType } from '../../lib/ErrorResponseType.js'
 
 const LOGGER = new Logger()
 
@@ -64,7 +66,8 @@ export async function handler (event: APIGatewayProxyEvent, context: Context): P
             name
         )
         statusCode = 200
-        body = JSON.stringify({"request_id": event_id})
+        const response: SuccessResponseType = { "request_id": event_id }
+        body = JSON.stringify(response)
     } catch (error) {
         LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
@@ -76,10 +79,11 @@ export async function handler (event: APIGatewayProxyEvent, context: Context): P
                 statusCode = 500
                 break;
         }
-        body = JSON.stringify({
-            name: (<Error>error).name,
+        const errorResponse: ErrorResponseType = {
+            error: (<Error>error).name,
             message: (<Error>error).message
-        })
+        }
+        body = JSON.stringify(errorResponse)
     }
 
     return {

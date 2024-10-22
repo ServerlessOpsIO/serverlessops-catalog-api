@@ -19,6 +19,7 @@ import {
 import {
     Entity
 } from '@backstage/catalog-model'
+import { ErrorResponseType } from '../../lib/ErrorResponseType.js'
 
 const LOGGER = new Logger()
 
@@ -74,7 +75,7 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
     let statusCode: number
     let body: string
     try {
-        const entity = await getEntity(
+        const entity: Entity = await getEntity(
             namespace,
             kind,
             name
@@ -92,10 +93,11 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
                 statusCode = 500
                 break;
         }
-        body = JSON.stringify({
-            name: (<Error>error).name,
+        const errorResponse: ErrorResponseType = {
+            error: (<Error>error).name,
             message: (<Error>error).message
-        })
+        }
+        body = JSON.stringify(errorResponse)
     }
 
     return {

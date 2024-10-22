@@ -18,6 +18,8 @@ import {
 import {
     Entity
 } from '@backstage/catalog-model'
+import { SuccessResponseType } from '../../lib/SuccessResponseType.js'
+import { ErrorResponseType } from '../../lib/ErrorResponseType.js'
 
 const LOGGER = new Logger()
 
@@ -78,7 +80,8 @@ export async function handler_create (event: APIGatewayProxyEvent, context: Cont
     try {
         await putEntity(entity, false)
         statusCode = 201
-        body = JSON.stringify({'request_id': event_id})
+        const response: SuccessResponseType = { "request_id": event_id }
+        body = JSON.stringify(response)
     } catch (error) {
         LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
@@ -90,10 +93,11 @@ export async function handler_create (event: APIGatewayProxyEvent, context: Cont
                 statusCode = 500
                 break;
         }
-        body = JSON.stringify({
-            name: (<Error>error).name,
+        const errorResponse: ErrorResponseType = {
+            error: (<Error>error).name,
             message: (<Error>error).message
-        })
+        }
+        body = JSON.stringify(errorResponse)
     }
 
     return {
@@ -118,12 +122,13 @@ export async function handler_upsert (event: APIGatewayProxyEvent, context: Cont
         kind !== event.pathParameters?.kind ||
         name !== event.pathParameters?.name
     ) {
+        const response: ErrorResponseType = {
+            error: 'BadRequest',
+            message: 'Entity metadata does not match request path'
+        }
         return {
             statusCode: 400,
-            body: JSON.stringify({
-                name: 'BadRequest',
-                message: 'Entity metadata does not match request path'
-            })
+            body: JSON.stringify(response)
         }
     }
 
@@ -132,7 +137,8 @@ export async function handler_upsert (event: APIGatewayProxyEvent, context: Cont
     try {
         await putEntity(entity, true)
         statusCode = 200
-        body = JSON.stringify({'request_id': event_id})
+        const response: SuccessResponseType = { "request_id": event_id }
+        body = JSON.stringify(response)
     } catch (error) {
         LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
@@ -144,10 +150,11 @@ export async function handler_upsert (event: APIGatewayProxyEvent, context: Cont
                 statusCode = 500
                 break;
         }
-        body = JSON.stringify({
-            name: (<Error>error).name,
+        const errorResponse: ErrorResponseType = {
+            error: (<Error>error).name,
             message: (<Error>error).message
-        })
+        }
+        body = JSON.stringify(errorResponse)
     }
 
     return {
