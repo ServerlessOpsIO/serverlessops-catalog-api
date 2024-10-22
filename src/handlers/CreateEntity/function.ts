@@ -47,7 +47,8 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
 
     const params: PutItemCommandInput = {
         TableName: DDB_TABLE_NAME,
-        Item: marshall(item)
+        Item: marshall(item),
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)'
     }
 
     try {
