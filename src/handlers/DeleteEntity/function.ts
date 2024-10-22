@@ -10,7 +10,6 @@ import {
     DynamoDBClient,
     DeleteItemCommand,
     DeleteItemCommandInput,
-    DeleteItemCommandOutput,
     DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
 
@@ -24,9 +23,7 @@ export async function deleteEntity(
     namespace: string,
     kind: string,
     name: string
-): Promise<DeleteItemCommandOutput> {
-    let output: DeleteItemCommandOutput
-
+): Promise<void> {
     const params: DeleteItemCommandInput = {
         TableName: DDB_TABLE_NAME,
         Key: {
@@ -37,7 +34,7 @@ export async function deleteEntity(
 
     try {
         const command = new DeleteItemCommand(params)
-        output = await DDB_CLIENT.send(command)
+        const output = await DDB_CLIENT.send(command)
         LOGGER.debug('DeleteItemCommand succeeded', { output })
     } catch (error) {
         LOGGER.error({
@@ -47,13 +44,12 @@ export async function deleteEntity(
         })
         throw error
     }
-
-    return output
 }
 
 
-export async function handler (event: APIGatewayProxyEvent, _: Context): Promise<APIGatewayProxyResult> {
+export async function handler (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
     LOGGER.debug('Received event', { event })
+    const event_id = context.awsRequestId
 
     const namespace = event.pathParameters?.namespace as string
     const kind = event.pathParameters?.kind as string
@@ -62,13 +58,13 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
     let statusCode: number
     let body: string
     try {
-        const output = await deleteEntity(
+        await deleteEntity(
             namespace,
             kind,
             name
         )
         statusCode = 200
-        body = JSON.stringify({'request_id':output.$metadata.requestId})
+        body = JSON.stringify({"request_id": event_id})
     } catch (error) {
         LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault

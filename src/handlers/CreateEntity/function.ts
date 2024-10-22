@@ -10,7 +10,6 @@ import {
     DynamoDBClient,
     PutItemCommand,
     PutItemCommandInput,
-    PutItemCommandOutput,
     DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
 import {
@@ -32,8 +31,7 @@ interface Item extends Entity {
     itemType: string
 }
 
-export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
-    let output: PutItemCommandOutput
+export async function putEntity(entity: Entity): Promise<void> {
 
     const namespace = entity.metadata.namespace
     const kind = entity.kind.toLowerCase()
@@ -54,7 +52,7 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
 
     try {
         const command = new PutItemCommand(params)
-        output = await DDB_CLIENT.send(command)
+        const output = await DDB_CLIENT.send(command)
         LOGGER.debug('PutItemCommand succeeded', { output })
     } catch (error) {
         LOGGER.error({
@@ -64,13 +62,12 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
         })
         throw error
     }
-
-    return output
 }
 
 
-export async function handler (event: APIGatewayProxyEvent, _: Context): Promise<APIGatewayProxyResult> {
+export async function handler (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
     LOGGER.debug('Received event', { event })
+    const event_id = context.awsRequestId
 
     const entity: Entity = JSON.parse(event.body || '{}')   // Already validated body at Gateway
 
@@ -79,7 +76,7 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
     try {
         const output = await putEntity(entity)
         statusCode = 201
-        body = JSON.stringify({'request_id': output.$metadata.requestId})
+        body = JSON.stringify({'request_id': event_id})
     } catch (error) {
         LOGGER.error("Operation failed", { event })
         const fault = (<DynamoDBServiceException>error).$fault
@@ -96,7 +93,6 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
             message: (<Error>error).message
         })
     }
-
 
     return {
         statusCode,
