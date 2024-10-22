@@ -11,6 +11,7 @@ import {
     PutItemCommand,
     PutItemCommandInput,
     PutItemCommandOutput,
+    DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
 import {
     marshall
@@ -56,7 +57,10 @@ export async function putEntity(entity: Entity): Promise<PutItemCommandOutput> {
         output = await DDB_CLIENT.send(command)
         LOGGER.info('PutItemCommand succeeded', { output })
     } catch (error) {
-        LOGGER.error('PutItemCommand failed', { error })
+        LOGGER.error('PutItemCommand failed', {
+            error: (<DynamoDBServiceException>error).name,
+            message: error
+        })
         throw error
     }
 
@@ -68,10 +72,29 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
     LOGGER.info('Received event', { event })
 
     const entity: Entity = JSON.parse(event.body || '{}')   // Already validated body at Gateway
-    const output = await putEntity(entity)
+
+    let statusCode: number
+    let body: string
+    try {
+        const output = await putEntity(entity)
+        statusCode = 201
+        body = JSON.stringify({'request_id': output.$metadata.requestId})
+    } catch (error) {
+        const fault = (<DynamoDBServiceException>error).$fault
+        switch (fault) {
+            case 'client':
+                statusCode = 400
+                break;
+            default:
+                statusCode = 500
+                break;
+        }
+        body = JSON.stringify({error: (<Error>error).message})
+    }
+
 
     return {
-        statusCode: 201,
-        body: JSON.stringify({'request_id': output.$metadata.requestId}),
+        statusCode,
+        body
     }
 }

@@ -108,12 +108,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        '502':
-          description: Unexpected upstream error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
       security:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.write
@@ -267,12 +261,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        '502':
-          description: Unexpected upstream error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
       security:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.read
@@ -308,12 +296,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        '502':
-          description: Unexpected upstream error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
       security:
         - serverlessOpsCognitoPool:
           - Fn::Sub: https://${Hostname}/catalog.write
@@ -322,6 +304,7 @@ paths:
         httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEntityFunction.Arn}/invocations"
+
 components:
   schemas:
     CreateEntityResponse:

@@ -11,6 +11,7 @@ import {
     GetItemCommand,
     GetItemCommandInput,
     GetItemCommandOutput,
+    DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
 import {
     unmarshall
@@ -43,12 +44,17 @@ export async function getEntity(
     try {
         const command = new GetItemCommand(params)
         output = await DDB_CLIENT.send(command)
-        LOGGER.info('PutItemCommand succeeded', { output })
+        LOGGER.info('GetItemCommand succeeded', { output })
     } catch (error) {
-        LOGGER.error('PutItemCommand failed', { error })
+        LOGGER.error('GetItemCommand failed', {
+            error: (<DynamoDBServiceException>error).name,
+            message: error
+         })
         throw error
     }
 
+    // This here I believe just to satisfy TypeScript. DDB should throw an error when the item
+    // is not found
     if ( typeof output.Item == 'undefined' ) {
         throw new Error('Entity not found')
     }
@@ -64,15 +70,31 @@ export async function handler (event: APIGatewayProxyEvent, _: Context): Promise
     const kind = event.pathParameters?.kind as string
     const name = event.pathParameters?.name as string
 
-
-    const entity = await getEntity(
-        namespace,
-        kind,
-        name
-    )
+    let statusCode: number
+    let body: string
+    try {
+        const entity = await getEntity(
+            namespace,
+            kind,
+            name
+        )
+        statusCode = 200
+        body = JSON.stringify(entity)
+    } catch (error) {
+        const fault = (<DynamoDBServiceException>error).$fault
+        switch (fault) {
+            case 'client':
+                statusCode = 400
+                break;
+            default:
+                statusCode = 500
+                break;
+        }
+        body = JSON.stringify({error: (<Error>error).message})
+    }
 
     return {
-        statusCode: 201,
-        body: JSON.stringify(entity),
+        statusCode,
+        body
     }
 }
