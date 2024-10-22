@@ -70,7 +70,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./dist/handlers/CreateEntity
-      Handler: function.handler
+      Handler: function.handler_create
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DdbTable
@@ -91,6 +91,35 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !GetAtt CreateEntityFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+
+  UpsertEntityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./dist/handlers/CreateEntity
+      Handler: function.handler_upsert
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DdbTable
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
+        Sourcemap: !Ref EnableSourceMaps
+        OutExtension:
+          - .js=.mjs
+        EntryPoints:
+          - function.js
+
+  UpsertEntityFunctionInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt UpsertEntityFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
 
@@ -122,6 +151,7 @@ Resources:
       FunctionName: !GetAtt GetEntityFunction.Arn
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
+
 
   DeleteEntityFunction:
     Type: AWS::Serverless::Function

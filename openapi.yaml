@@ -58,37 +58,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                apiVersion:
-                  type: string
-                kind:
-                  type: string
-                metadata:
-                  type: object
-                  properties:
-                    namespace:
-                      type: string
-                    name:
-                      type: string
-                    title:
-                      type: string
-                    annotations:
-                      type: object
-                  required:
-                    - name
-                  additionalProperties: true
-                spec:
-                  type: object
-                  properties:
-                    owner:
-                      type: string
-                    type:
-                      type: string
-              required:
-                - apiVersion
-                - kind
-                - metadata
+              $ref: "#/components/schemas/Entity"
+
       responses:
         '201':
           description: Created
@@ -248,7 +219,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/Entity"
         '400':
           description: Client failure
           content:
@@ -283,7 +254,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/RequestIdResponse"
         '400':
           description: Client failure
           content:
@@ -304,9 +275,85 @@ paths:
         httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEntityFunction.Arn}/invocations"
+    put:
+      summary: Delete catalog item
+      description: Delete catalog item
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/kind"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Entity"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestIdResponse"
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.write
+      x-amazon-apigateway-integration:
+        type: AWS_PROXY
+        httpMethod: POST
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpsertEntityFunction.Arn}/invocations"
 
 components:
   schemas:
+    Entity:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+          properties:
+            namespace:
+              type: string
+            name:
+              type: string
+            title:
+              type: string
+            annotations:
+              type: object
+          required:
+            - name
+          additionalProperties: true
+        spec:
+          type: object
+          properties:
+            owner:
+              type: string
+            type:
+              type: string
+          required:
+            - owner
+          additionalProperties: true
+      required:
+        - apiVersion
+        - kind
+        - metadata
     CreateEntityResponse:
       type: object
       properties:
