@@ -22,6 +22,7 @@ metadata:
   description: ServerlessOps Catalog API Definition
 spec:
   type: openapi
+  system: system:serverlessops-catalog-api
   lifecycle: production
   owner: group:admins
   definition:
