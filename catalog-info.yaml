@@ -10,7 +10,7 @@ spec:
   type: api
   lifecycle: production
   owner: group:admins
-  system: ServerlessOps Catalog API
+  system: system:serverlessops-catalog-api
   providesApis:
     - resource:serverlessops-catalog-api
 
