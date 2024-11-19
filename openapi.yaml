@@ -276,8 +276,8 @@ paths:
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEntityFunction.Arn}/invocations"
     put:
-      summary: Delete catalog item
-      description: Delete catalog item
+      summary: Update catalog item
+      description: Update catalog item
       parameters:
         - $ref: "#/components/parameters/namespace"
         - $ref: "#/components/parameters/kind"
