@@ -23,7 +23,7 @@
     "compile:full": "node_modules/typescript/bin/tsc --skipLibCheck false --incremental false",
     "compile:watch": "node_modules/typescript/bin/tsc --watch",
     "lint": "eslint '--flag unstable_ts_config *.ts' --quiet --fix",
-    "test": "npm run compile && npm run unit",
+    "test": "yarn run compile && yarn run unit",
     "test:unit": "jest",
     "sam:build": "sam build --parallel",
     "sam:package": "sam package",
