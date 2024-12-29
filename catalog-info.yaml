@@ -9,7 +9,7 @@ metadata:
 spec:
   type: api
   lifecycle: production
-  owner: group:admins
+  owner: group:00gjdgxs1ur6lsu
   system: system:backstage
   providesApis:
     - resource:serverlessops-catalog-api
@@ -24,6 +24,6 @@ spec:
   type: openapi
   system: system:backstage
   lifecycle: production
-  owner: group:admins
+  owner: group:00gjdgxs1ur6lsu
   definition:
     $text: https://github.com/ServerlessOpsIO/serverlessops-catalog-api/blob/main/openapi.yaml
