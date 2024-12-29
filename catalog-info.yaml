@@ -10,7 +10,7 @@ spec:
   type: api
   lifecycle: production
   owner: group:admins
-  system: system:serverlessops-catalog-api
+  system: system:backstage
   providesApis:
     - resource:serverlessops-catalog-api
 
@@ -22,7 +22,7 @@ metadata:
   description: ServerlessOps Catalog API Definition
 spec:
   type: openapi
-  system: system:serverlessops-catalog-api
+  system: system:backstage
   lifecycle: production
   owner: group:admins
   definition:
