@@ -230,7 +230,7 @@ Resources:
       AccessLogSetting:
         DestinationArn: !GetAtt RestApiLogGroup.Arn
         Format: |
-          { "requestId": "$context.requestId", "ip": "$context.identity.sourceIp", "requestTime": "$context.requestTime", "httpMethod": "$context.httpMethod", "routeKey": "$context.routeKey", "status": "$context.status", "protocol": "$context.protocol", "responseLength": "$context.responseLength", "extendedRequestId": "$context.extendedRequestId" }
+          { "requestId": "$context.requestId", "ip": "$context.identity.sourceIp", "requestTime": "$context.requestTime", "httpMethod": "$context.httpMethod", "routeKey": "$context.routeKey", "status": "$context.status", "protocol": "$context.protocol", "responseLength": "$context.responseLength", "extendedRequestId": "$context.extendedRequestId", "cognito": {"authProvider":"$context.identity.cognitoAuthenticationProvider", "authType":"$context.identity.cognitoAuthenticationType", "identityId":"$context.identity.cognitoIdentityId", "identityPoolId":"$context.identity.cognitoIdentityPoolId"} }
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
