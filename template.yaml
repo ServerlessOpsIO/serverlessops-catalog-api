@@ -230,7 +230,7 @@ Resources:
       AccessLogSetting:
         DestinationArn: !GetAtt RestApiLogGroup.Arn
         Format: |
-          {"requestId":"$context.requestId","extendedRequestId":"$context.extendedRequestId","xrayTraceId":"$context.xrayTraceId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","userAgent":"$context.identity.userAgent","authorizer":{"error":"$context.authorizer.error","latency":"$context.authorizer.latency","status":"$context.authorizer.status"},"integration":{"requestId":"$context.integration.requestId","functionStatus":"$context.integration.status","lambdaStatus":"$context.integrationStatus"}}
+          {"requestId":"$context.requestId","extendedRequestId":"$context.extendedRequestId","xrayTraceId":"$context.xrayTraceId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","userAgent":"$context.identity.userAgent","authorizer":{"error":"$context.authorizer.error","status":"$context.authorizer.status"},"integration":{"requestId":"$context.integration.requestId","functionStatus":"$context.integration.status","lambdaStatus":"$context.integrationStatus"}}
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
