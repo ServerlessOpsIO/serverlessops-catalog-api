@@ -229,7 +229,7 @@ Resources:
         EndpointConfiguration: REGIONAL
       AccessLogSetting:
         DestinationArn: !GetAtt RestApiLogGroup.Arn
-        Format: '$context.extendedRequestId $context.identity.sourceIp $context.identity.caller $context.identity.user [$context.requestTime] "$context.httpMethod $context.resourcePath $context.protocol" $context.status $context.responseLength $context.requestId'
+        Format: '$context.identity.sourceIp $context.identity.caller $context.identity.user [$context.requestTime] "$context.httpMethod $context.resourcePath $context.protocol" $context.status $context.responseLength $context.requestId $context.extendedRequestId'
       MethodSettings:
         - ResourcePath: "/*"
           HttpMethod: "*"
