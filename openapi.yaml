@@ -87,6 +87,49 @@ paths:
         httpMethod: POST
         uri:
           Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateEntityFunction.Arn}/invocations"
+    # Created to handle EventBridge API Destination
+    delete:
+      summary: Delete all catalog items
+      description: Delete a catalog item based on entity in body
+      parameters:
+        - $ref: "#/components/parameters/headerContentTypeJson"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Entity"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestIdResponse"
+        '400':
+          description: Client failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        '500':
+          description: Server failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - serverlessOpsCognitoPool:
+          - Fn::Sub: https://${Hostname}/catalog.write
+      x-amazon-apigateway-integration:
+        type: AWS_PROXY
+        httpMethod: POST
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteEntityFunction.Arn}/invocations"
+        requestParameters:
+          integration.request.path.namespace: "method.request.body.metadata.namespace"
+          integration.request.path.kind: "method.request.body.kind"
+          integration.request.path.name: "method.request.body.metadata.name"
 
   "/catalog/{namespace}/{kind}":
     get:
