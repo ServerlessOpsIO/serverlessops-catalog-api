@@ -93,12 +93,12 @@ paths:
       description: Delete a catalog item based on entity in body
       parameters:
         - $ref: "#/components/parameters/headerContentTypeJson"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Entity"
+      #requestBody:
+      #  required: true
+      #  content:
+      #    application/json:
+      #      schema:
+      #        $ref: "#/components/schemas/Entity"
       responses:
         '200':
           description: Success
