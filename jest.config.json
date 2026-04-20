@@ -3,6 +3,8 @@
   "transform": {
     "^.+.tsx?$": ["ts-jest",{}]
   },
-  "modulePathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/.aws-sam"],
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  }, "modulePathIgnorePatterns": ["<rootDir>/dist/", "<rootDir>/.aws-sam"],
   "collectCoverage": true
 }
