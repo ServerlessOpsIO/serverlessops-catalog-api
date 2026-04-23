@@ -56,7 +56,7 @@ jobs:
 
   deploy:
     # Disableing until a full workflow for feature branches is figured out.
-    if: false
+#   if: false
     needs:
       - build
 
@@ -72,15 +72,15 @@ jobs:
         with:
           checkout_artifact: true
 
-      - name: Assume AWS Credentials
-        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
-        with:
-          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
-          deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
-
-      - name: Deploy via AWS SAM
-        uses: ServerlessOpsIO/gha-deploy-aws-sam@v1
-        with:
-          aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
-          env_json: ${{ toJson(env) }}
-          secrets_json: ${{ toJson(secrets) }}
+#      - name: Assume AWS Credentials
+#        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
+#        with:
+#          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
+#          deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
+#
+#      - name: Deploy via AWS SAM
+#        uses: ServerlessOpsIO/gha-deploy-aws-sam@v1
+#        with:
+#          aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
+#          env_json: ${{ toJson(env) }}
+#          secrets_json: ${{ toJson(secrets) }}
