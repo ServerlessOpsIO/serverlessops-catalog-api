@@ -39,6 +39,22 @@ jobs:
         with:
           use_aws_sam: true
 
+      - name: 'Upload pipeline artifact 1'
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: template.yaml
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 'Upload pipeline artifact 2'
+        id: upload-artifact-2
+        uses: actions/upload-artifact@v4
+        with:
+          path: README.md
+          if-no-files-found: error
+          retention-days: 1
+
   deploy:
     # Disableing until a full workflow for feature branches is figured out.
     if: false
