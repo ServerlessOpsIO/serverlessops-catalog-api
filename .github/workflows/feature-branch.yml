@@ -72,6 +72,9 @@ jobs:
         with:
           checkout_artifact: true
 
+      - name: show files
+        run: pwd && tree -a
+
 #      - name: Assume AWS Credentials
 #        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
 #        with:
