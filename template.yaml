@@ -39,7 +39,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs24.x
     Timeout: 5
     MemorySize: 128
     Environment:
@@ -78,7 +78,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
@@ -107,7 +107,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
@@ -136,7 +136,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
@@ -165,7 +165,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
-        Target: "es2020"
+        Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
