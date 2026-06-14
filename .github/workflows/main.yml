@@ -20,7 +20,7 @@ jobs:
       - name: Setup Node
         uses: ServerlessOpsIO/gha-setup-node@v1
         with:
-          node_version: '20'
+          node_version: '24'
 
       - name: Assume AWS Credentials
         uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
