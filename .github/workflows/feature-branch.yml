@@ -18,17 +18,9 @@ jobs:
         uses: ServerlessOpsIO/gha-setup-workspace@v2
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: ServerlessOpsIO/gha-setup-node@v1
         with:
-          node-version: '20'
-
-      - name: Install Yarn via corepack
-        shell: bash
-        run: corepack enable
-
-      - name: Install dependencies
-        shell: bash
-        run: yarn install --immutable
+          node_version: '20'
 
       - name: Assume AWS Credentials
         uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
