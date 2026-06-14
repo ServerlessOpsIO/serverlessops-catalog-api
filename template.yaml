@@ -24,7 +24,7 @@ Parameters:
     Description: Site FQDN
 
   DnsZoneId:
-    Type: AWS::SSM::Parameter::Value<String>
+    Type: String
     Description: Route53 Hosted Zone ID
 
   CognitoUserPoolArn:
