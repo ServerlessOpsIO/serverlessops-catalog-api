@@ -69,7 +69,7 @@ Resources:
   CreateEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/handlers/CreateEntity
+      CodeUri: ./src/handlers/CreateEntity
       Handler: function.handler_create
       Policies:
         - DynamoDBCrudPolicy:
@@ -85,7 +85,7 @@ Resources:
         OutExtension:
           - .js=.mjs
         EntryPoints:
-          - function.js
+          - function.ts
 
   CreateEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
@@ -98,7 +98,7 @@ Resources:
   UpsertEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/handlers/CreateEntity
+      CodeUri: ./src/handlers/CreateEntity
       Handler: function.handler_upsert
       Policies:
         - DynamoDBCrudPolicy:
@@ -114,7 +114,7 @@ Resources:
         OutExtension:
           - .js=.mjs
         EntryPoints:
-          - function.js
+          - function.ts
 
   UpsertEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
@@ -127,7 +127,7 @@ Resources:
   GetEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/handlers/GetEntity
+      CodeUri: ./src/handlers/GetEntity
       Handler: function.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -143,7 +143,7 @@ Resources:
         OutExtension:
           - .js=.mjs
         EntryPoints:
-          - function.js
+          - function.ts
 
   GetEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
@@ -156,7 +156,7 @@ Resources:
   DeleteEntityFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./dist/handlers/DeleteEntity
+      CodeUri: ./src/handlers/DeleteEntity
       Handler: function.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -172,7 +172,7 @@ Resources:
         OutExtension:
           - .js=.mjs
         EntryPoints:
-          - function.js
+          - function.ts
 
   DeleteEntityFunctionInvokePermission:
     Type: AWS::Lambda::Permission
