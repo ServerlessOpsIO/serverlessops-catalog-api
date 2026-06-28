@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "ServerlessOps Catalog API for Backstage",
   "type": "module",
+  "module": "function.mjs",
   "repository": {
     "type": "git",
     "url": "git@github.com:ServerlessOpsIO/serverlessops-catalog-api.git"
