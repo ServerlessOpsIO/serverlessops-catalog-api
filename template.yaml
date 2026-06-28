@@ -80,6 +80,7 @@ Resources:
         Minify: false
         Target: "es2024"
         Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
         OutExtension:
           - .js=.mjs
@@ -108,6 +109,7 @@ Resources:
         Minify: true
         Target: "es2024"
         Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
         OutExtension:
           - .js=.mjs
@@ -136,6 +138,7 @@ Resources:
         Minify: true
         Target: "es2024"
         Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
         OutExtension:
           - .js=.mjs
@@ -164,6 +167,7 @@ Resources:
         Minify: true
         Target: "es2024"
         Format: "esm"
+        MainFields: module,main # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
         OutExtension:
           - .js=.mjs
