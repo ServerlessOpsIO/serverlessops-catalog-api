@@ -77,7 +77,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: false
         Target: "es2024"
         Format: "esm"
         Sourcemap: !Ref EnableSourceMaps
