@@ -5,6 +5,5 @@
     "CodeBranch": $env.GITHUB_REF_SLUG_CS,
 	"Hostname": "api.catalog.platform.serverlessops.io",
 	"DnsZoneId": $secrets.ROUTE53_ZONE_ID,
-    "CognitoUserPoolArn": $secrets.COGNITO_USER_POOL_ARN,
-    "EnableSourceMaps": "true"
+    "CognitoUserPoolArn": $secrets.COGNITO_USER_POOL_ARN
 }
