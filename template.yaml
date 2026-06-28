@@ -34,12 +34,12 @@ Parameters:
   EnableSourceMaps:
     Type: String
     Description: Enable source maps for debugging
-    Default: false
+    Default: true
 
   EnableMinify:
     Type: String
     Description: Enable minification for the build
-    Default: true
+    Default: false
 
 
 Globals:
