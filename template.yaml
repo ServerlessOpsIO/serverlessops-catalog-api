@@ -36,6 +36,11 @@ Parameters:
     Description: Enable source maps for debugging
     Default: false
 
+  EnableMinify:
+    Type: String
+    Description: Enable minification for the build
+    Default: true
+
 
 Globals:
   Function:
@@ -77,7 +82,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: !Ref EnableMinify
         Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
@@ -106,7 +111,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: !Ref EnableMinify
         Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
@@ -135,7 +140,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: !Ref EnableMinify
         Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
@@ -164,7 +169,7 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: !Ref EnableMinify
         Target: "es2024"
         Format: "esm"
         MainFields: module,main # This is to help with ESM modules
