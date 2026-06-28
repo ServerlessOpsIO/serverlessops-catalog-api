@@ -182,14 +182,14 @@ Resources:
       Principal: apigateway.amazonaws.com
 
   # APIG
-  SiteCertificate:
-    Type: AWS::CertificateManager::Certificate
-    Properties:
-      DomainName: !Ref Hostname
-      ValidationMethod: DNS
-      DomainValidationOptions:
-        - DomainName: !Ref Hostname
-          HostedZoneId: !Ref DnsZoneId
+#  SiteCertificate:
+#    Type: AWS::CertificateManager::Certificate
+#    Properties:
+#      DomainName: !Ref Hostname
+#      ValidationMethod: DNS
+#      DomainValidationOptions:
+#        - DomainName: !Ref Hostname
+#          HostedZoneId: !Ref DnsZoneId
 
   RestApiIamRole:
     Type: AWS::IAM::Role
@@ -217,28 +217,28 @@ Resources:
       LogGroupName: !Sub "/aws/api-gateway/${AWS::StackName}"
       RetentionInDays: 7
 
-  RestApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: !Ref CodeBranch
-      Domain:
-        DomainName: !Ref Hostname
-        CertificateArn: !Ref SiteCertificate
-        Route53:
-          HostedZoneId: !Ref DnsZoneId
-        EndpointConfiguration: REGIONAL
-      AccessLogSetting:
-        DestinationArn: !GetAtt RestApiLogGroup.Arn
-        Format: |
-          {"requestId":"$context.requestId","extendedRequestId":"$context.extendedRequestId","xrayTraceId":"$context.xrayTraceId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","userAgent":"$context.identity.userAgent","authorizer":{"error":"$context.authorizer.error","status":"$context.authorizer.status","claims":{"sub":"$context.authorizer.claims.sub","scope":"$context.authorizer.claims.scope","exp":"$context.authorizer.claims.exp","iat":"$context.authorizer.claims.iat","jti":"$context.authorizer.claims.jti"}},"integration":{"requestId":"$context.integration.requestId","functionStatus":"$context.integration.status","lambdaStatus":"$context.integrationStatus"}}
-      MethodSettings:
-        - ResourcePath: "/*"
-          HttpMethod: "*"
-          LoggingLevel: INFO
-          MetricsEnabled: true
-          DataTraceEnabled: false
-      DefinitionBody:
-        Fn::Transform:
-          Name: "AWS::Include"
-          Parameters:
-            Location: "openapi.yaml"
+#  RestApi:
+#    Type: AWS::Serverless::Api
+#    Properties:
+#      StageName: !Ref CodeBranch
+#      Domain:
+#        DomainName: !Ref Hostname
+#        CertificateArn: !Ref SiteCertificate
+#        Route53:
+#          HostedZoneId: !Ref DnsZoneId
+#        EndpointConfiguration: REGIONAL
+#      AccessLogSetting:
+#        DestinationArn: !GetAtt RestApiLogGroup.Arn
+#        Format: |
+#          {"requestId":"$context.requestId","extendedRequestId":"$context.extendedRequestId","xrayTraceId":"$context.xrayTraceId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","userAgent":"$context.identity.userAgent","authorizer":{"error":"$context.authorizer.error","status":"$context.authorizer.status","claims":{"sub":"$context.authorizer.claims.sub","scope":"$context.authorizer.claims.scope","exp":"$context.authorizer.claims.exp","iat":"$context.authorizer.claims.iat","jti":"$context.authorizer.claims.jti"}},"integration":{"requestId":"$context.integration.requestId","functionStatus":"$context.integration.status","lambdaStatus":"$context.integrationStatus"}}
+#      MethodSettings:
+#        - ResourcePath: "/*"
+#          HttpMethod: "*"
+#          LoggingLevel: INFO
+#          MetricsEnabled: true
+#          DataTraceEnabled: false
+#      DefinitionBody:
+#        Fn::Transform:
+#          Name: "AWS::Include"
+#          Parameters:
+#            Location: "openapi.yaml"
