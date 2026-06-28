@@ -77,10 +77,10 @@ Resources:
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
-        Minify: true
+        Minify: false
         Target: "es2024"
         Format: "esm"
-        MainFields: module,main # This is to help with ESM modules
+        MainFields: main,module # This is to help with ESM modules
         Sourcemap: !Ref EnableSourceMaps
         OutExtension:
           - .js=.mjs
