@@ -12,7 +12,7 @@ spec:
   owner: group:00gjdgxs1ur6lsu
   system: system:backstage
   providesApis:
-    - resource:serverlessops-catalog-api
+    - api:serverlessops-catalog-api
 
 ---
 apiVersion: backstage.io/v1alpha1
