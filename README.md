@@ -33,6 +33,35 @@ HTTP/1.1 200 OK
 }
 ```
 
+Results are paged. When more entities remain, the response includes a `nextToken`. Pass it back as the `nextToken` query parameter, URL-encoded, to get the next page. Keep requesting pages until a response has no `nextToken`. A page can contain fewer entities than requested, or none at all, while more pages remain.
+
+Use the optional `limit` query parameter to cap how many entities are evaluated per page. Without it, each page holds up to 1 MB of data.
+
+Example
+```http
+GET /catalog/default/resource?limit=2
+
+HTTP/1.1 200 OK
+{
+  "entities": [
+      "default/resource/aws-000000000000",
+      "default/resource/aws-000000000001"
+    ],
+  "nextToken": "ZGVmYXVsdC9yZXNvdXJjZS9hd3MtMDAwMDAwMDAwMDAx"
+}
+```
+
+```http
+GET /catalog/default/resource?limit=2&nextToken=ZGVmYXVsdC9yZXNvdXJjZS9hd3MtMDAwMDAwMDAwMDAx
+
+HTTP/1.1 200 OK
+{
+  "entities": [
+      "default/resource/aws-000000000002"
+    ]
+}
+```
+
 
 **Get entity by path**
 ```http
