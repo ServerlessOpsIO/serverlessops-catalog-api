@@ -98,17 +98,19 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Maximum number of items to return
+          description: >-
+            Maximum number of items to evaluate for this page. A page may contain fewer
+            items than the limit, and may be empty while more pages remain. Keep
+            requesting pages until no nextToken is returned.
           schema:
             type: integer
-            default: 10
-        - name: offset
+            minimum: 1
+        - name: nextToken
           in: query
           required: false
-          description: Offset to start from
+          description: Token returned by the previous page to fetch the next page
           schema:
-            type: integer
-            default: 0
+            type: string
         - $ref: "#/components/parameters/headerContentTypeJson"
       responses:
         '200':
@@ -122,6 +124,9 @@ paths:
                     type: array
                     items:
                       type: string
+                  nextToken:
+                    type: string
+                    description: Present when more items remain. Pass as nextToken to fetch the next page.
         '400':
           description: Client failure
           content:
@@ -153,7 +158,11 @@ paths:
         passthroughBehavior: NEVER
         requestTemplates:
           "application/json":
+            # nextToken is the base64 encoded sk of the last evaluated item. The pk is always
+            # derived from the path so a token can't be used to read another partition.
             Fn::Sub: |
+              #set( $limit = $input.params('limit') )
+              #set( $nextToken = $input.params('nextToken') )
               {
                 "TableName": "${DdbTable}",
                 "KeyConditionExpression": "#pk = :pk",
@@ -166,7 +175,12 @@ paths:
                   "#itemType": "itemType"
                 },
                 "FilterExpression": "#itemType = :itemType",
-                "ProjectionExpression": "sk"
+                "ProjectionExpression": "sk"#if( $limit.matches("^[1-9][0-9]{0,8}$") ),
+                "Limit": $limit#end#if( $nextToken != "" ),
+                "ExclusiveStartKey": {
+                  "pk": { "S": "$input.params('namespace')/$input.params('kind')" },
+                  "sk": { "S": "$util.escapeJavaScript($util.base64Decode($nextToken)).replaceAll("\\'", "'")" }
+                }#end
               }
         responses:
           "2\\d{2}":
@@ -174,13 +188,15 @@ paths:
             responseTemplates:
               "application/json": |
                 #set( $items = $input.path('$.Items') )
+                #set( $lastSk = $input.path('$.LastEvaluatedKey.sk.S') )
                 {
                   "entities": [
                   #foreach($element in $items)
                     "$element.sk.S"#if($foreach.hasNext),#end
 
                   #end
-                  ]
+                  ]#if( "$!lastSk" != "" ),
+                  "nextToken": "$util.base64Encode($lastSk)"#end
                 }
           "4\\d{2}":
             statusCode: 400
