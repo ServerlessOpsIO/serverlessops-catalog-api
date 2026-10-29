@@ -1,50 +1,155 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: unresolved scaffold → 1.0.0 (initial ratification)
+Modified principles: none
+Added principles: I. Backstage Entity Fidelity; II. OpenAPI Contract First;
+  III. Serverless, Minimal Compute, Least Privilege; IV. Stable Data Model;
+  V. Security by Default; VI. Testing and Quality Gates; VII. Consistent
+  Responses and Observability; VIII. Simplicity
+Added sections: Technology and Deployment Constraints; Development Workflow
+Removed sections: none
+Follow-up TODOs: no unresolved placeholders. CI test and quality-gate work is
+  deferred because this command is limited to the constitution file.
+-->
+
+# ServerlessOps Catalog API Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Backstage Entity Fidelity
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- The API MUST store Backstage entities and return entity-valued payloads that conform to the
+  `Entity` type from `@backstage/catalog-model`. The list endpoint MUST return entity identifiers
+  in the shape defined by the OpenAPI contract.
+- Entity identity MUST be namespace, kind, and `metadata.name`; the kind used for storage keys and
+  lookups MUST be lowercased.
+- The API MUST remain limited to health checks, entity CRUD, upsert, and paged listing by namespace
+  and kind. New capabilities MUST be justified by a concrete need from the Backstage provider or a
+  data-loading client. General-purpose search, relations processing, and semantic catalog validation
+  beyond the request schema are out of scope.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Rationale: A narrow, typed contract keeps this service a dependable source for Backstage entities.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. OpenAPI Contract First
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+- `openapi.yaml` MUST be the source of truth for routes, request and response schemas, request
+  validation, authorization, and API Gateway integrations; `template.yaml` MUST include it through
+  `AWS::Include`.
+- Contract changes MUST be made in `openapi.yaml` before or alongside handler changes. API Gateway
+  MUST validate request parameters and bodies with the `all` request validator. Handlers MAY rely on
+  gateway schema validation, but MUST check path/body consistency where applicable, including that
+  an upsert path matches the entity metadata.
+- Changes to paths, response shapes, status codes, or `nextToken`/`limit` paging semantics MUST be
+  identified as breaking changes and coordinated with the
+  `catalog-backend-module-serverlessops-catalog` provider. README API examples MUST be updated in
+  the same change.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: A contract-first API prevents the provider and deployed API from drifting apart.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Serverless, Minimal Compute, Least Privilege
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Each Lambda-backed operation MUST have a focused function. Pure data access without additional
+  logic MUST use a direct API Gateway-to-DynamoDB integration, as the list operation does.
+- Each function and integration role MUST receive only the IAM actions it requires. Read handlers
+  MUST have read-only access, delete handlers MUST have delete-only access, and new functions MUST
+  NOT use broad managed policies such as `DynamoDBCrudPolicy`. Existing broad-policy uses are debt
+  and MUST be replaced when those handlers are modified.
+- Lambda functions MUST use 128 MB memory and a 5-second timeout unless the plan justifies
+  different values.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Rationale: Narrow permissions and small, focused compute reduce cost and limit the impact of errors.
+
+### IV. Stable Data Model
+
+- The service MUST use one DynamoDB table with `PAY_PER_REQUEST` billing. Each entity item MUST
+  use `pk = "<namespace>/<kind>"`, `sk = "<namespace>/<kind>/<name>"`, and `itemType = "entity"`.
+- Changes to key structure, access patterns, or indexes MUST include a documented migration and
+  backfill plan and MUST keep existing records working.
+- Create MUST fail when the item already exists by using a conditional write. Upsert MAY overwrite
+  an existing item.
+
+Rationale: A stable, intentionally small data model makes existing entity records safe to operate.
+
+### V. Security by Default
+
+- Every API route, including health checks, MUST require the Cognito user-pool authorizer; the API
+  MUST NOT expose unauthenticated routes.
+- Source code MUST NOT contain secrets, credentials, or real account IDs. Environment-specific
+  values MUST come from SAM parameters, `cfn-parameters.json`, or GitHub secrets as appropriate.
+- Logs MUST NOT contain tokens or credentials. Full API request events MUST be logged only at
+  DEBUG level.
+
+Rationale: Authentication, controlled configuration, and bounded logging protect the API and its
+callers.
+
+### VI. Testing and Quality Gates (NON-NEGOTIABLE)
+
+- New or changed handler logic MUST have Jest unit tests with the DynamoDB client mocked. Tests
+  MUST cover success, relevant conditional-check failures, DynamoDB client faults (4xx), and service
+  faults (5xx).
+- GitHub Actions MUST run lint, TypeScript compilation, unit tests, and `sam validate --lint`
+  successfully before building artifacts or deploying. The existing `TODO: Need to run tests` gap
+  in `.github/workflows` MUST be closed before those workflows are considered compliant.
+- TypeScript MUST use strict typing and MUST avoid `any`. Caught errors MUST be explicitly
+  type-asserted or narrowed before their fields are accessed.
+
+Rationale: Automated checks and focused fault-path tests prevent regressions from reaching deployed
+stacks.
+
+### VII. Consistent Responses and Observability
+
+- Successful operation acknowledgements MUST use the shared response type and include
+  `request_id` from the Lambda `awsRequestId`. Entity reads MUST return an entity, and list and
+  health responses MUST follow their OpenAPI schemas.
+- Error responses MUST use the shared `ErrorResponseType` shape `{ error, message }`. AWS SDK
+  client faults MUST map to 4xx responses and service faults MUST map to 5xx responses. Not-found
+  results MUST map to 404; create conflicts MUST use 409 or 400 as declared by the contract.
+  Create MUST return 201 and successful upsert and get operations MUST return 200.
+- Handlers MUST use AWS Lambda Powertools Logger for structured JSON logging, with
+  `POWERTOOLS_SERVICE_NAME` set from the stack. API Gateway access logging and metrics MUST remain
+  enabled.
+
+Rationale: Consistent response shapes and structured telemetry make API behavior diagnosable and
+predictable for clients.
+
+### VIII. Simplicity (YAGNI)
+
+- Plans proposing a new AWS service, framework, Lambda layer, or shared abstraction MUST justify
+  its need, alternatives, and operational cost in the plan's Complexity Tracking table.
+- Handlers MUST remain small and focused and MUST share code through `src/lib` where appropriate;
+  abstractions without a concrete current use case MUST NOT be added.
+
+Rationale: Avoiding unnecessary infrastructure and abstractions keeps the service maintainable.
+
+## Technology and Deployment Constraints
+
+- Application code MUST use TypeScript ESM and MUST be built by SAM esbuild for `nodejs24.x`, with
+  target `es2024` and `.mjs` output. `package.json` MUST declare an engine range aligned with
+  Node.js 24. Yarn 4 MUST be the only package manager.
+- Infrastructure MUST be defined in `template.yaml` and `openapi.yaml`; console-only changes MUST
+  NOT be used to configure the service.
+- Deployment MUST occur only through GitHub Actions. Pushes to `main` MUST deploy to production,
+  and branch builds MUST use the branch name as the API stage. `EnableMinify` and `EnableSourceMaps`
+  MUST remain build-time template defaults.
+
+## Development Workflow
+
+- Work MUST occur on feature branches and be proposed through pull requests to `main`. Specs MUST
+  use this repository's Spec Kit conventions: timestamp-based numbering and
+  `<component>-spec-<timestamp>` naming. Plans MUST be reviewed through pull requests.
+- Each pull request MUST keep `openapi.yaml`, README API examples, and `catalog-info.yaml` accurate.
+- Plans MUST pass the Constitution Check before research and again after design. Reviewers MUST
+  verify compliance with this constitution.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes conflicting project guidance. Existing code that conflicts with a
+  rule is technical debt to fix, not precedent.
+- Amendments MUST be proposed in a pull request with a rationale. Use semantic versioning: MAJOR
+  for removal or redefinition of a principle, MINOR for adding a principle or section, and PATCH
+  for clarification.
+- Every amendment MUST update the Version, Ratified, and Last Amended lines. When an amendment
+  changes a gate referenced by `.specify/templates`, the amendment's follow-up MUST propagate that
+  change to the affected templates.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-10-29 | **Last Amended**: 2026-10-29
