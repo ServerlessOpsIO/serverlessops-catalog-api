@@ -1,0 +1,31 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: serverlessops-catalog-api-spec-001
+  title: "001 - Publish catalog events"
+  description: "As a dev I want to be able to consume and respond to changes in the API's collection"
+  annotations:
+    github.com/project-slug: ServerlessOpsIO/serverlessops-catalog-api
+    serverlessops.io/spec-dir: specs/001-publish-catalog-events
+    serverlessops.io/spec-number: "001"
+    serverlessops.io/spec-issue: 13
+    serverlessops.io/spec-type: "feature"
+    backstage.io/source-location: url:https://github.com/ServerlessOpsIO/serverlessops-catalog-api/tree/main/specs/001-publish-catalog-events/
+  tags:
+    - speckit
+  links:
+    - url: https://github.com/ServerlessOpsIO/serverlessops-catalog-api/blob/main/specs/001-publish-catalog-events/spec.md
+      title: Specification
+      icon: docs
+    - url: https://github.com/ServerlessOpsIO/serverlessops-catalog-api/blob/main/specs/001-publish-catalog-events/plan.md
+      title: Implementation plan
+      icon: docs
+    - url: https://github.com/ServerlessOpsIO/serverlessops-catalog-api/issues/13
+      title: Spec tracking issue
+      icon: github
+spec:
+  type: doc-spec
+  owner: group:00gjdgxs1ur6lsu
+  system: system:backstage
+  dependsOn:
+    - component:default/serverlessops-catalog-api
