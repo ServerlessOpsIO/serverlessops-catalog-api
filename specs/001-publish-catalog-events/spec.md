@@ -8,6 +8,14 @@
 
 **Input**: User description: "https://github.com/ServerlessOpsIO/serverlessops-catalog-api/issues/13"
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: What value will the SSM parameter `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` contain: the SQS queue URL or its name? → A: Create separate SSM parameters for the SQS queue name and queue URL.
+- Q: If a database mutation commits but SQS remains unavailable after retries, what delivery outcome should the API guarantee? → A: Keep the mutation successful and durably retry publication until delivery succeeds or an unresolved failure is surfaced.
+- Q: Should this feature provision or configure the SQS queue it publishes to? → A: No; SQS queue provisioning and configuration are outside this feature's scope.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Deliver change events for catalog mutations (Priority: P1)
@@ -69,15 +77,15 @@ As an operator, I need failed mutations to avoid publishing success-like events 
 - **FR-002**: The system MUST classify each published event with the effective change type (create, update, or delete) that occurred in persisted state.
 - **FR-003**: The system MUST include entity identity (namespace, kind, and name), event occurrence timestamp, and a unique event identifier in every published event.
 - **FR-004**: The system MUST produce events that conform to the shared catalog-event contract referenced by the dependent consumer specification.
-- **FR-005**: The system MUST discover the event destination through centrally managed runtime configuration rather than hardcoded destination identifiers.
+- **FR-005**: The system MUST discover the SQS queue name and URL through separate centrally managed SSM parameters rather than hardcoded destination identifiers.
 - **FR-006**: The system MUST NOT publish a catalog change event for mutation requests that fail before persisting a state change.
-- **FR-007**: The system MUST retry event delivery after transient publication failures and MUST surface unresolved publication failures through operational error signals.
+- **FR-007**: After a successful mutation, the system MUST keep the committed change successful and durably retry event delivery after transient publication failures until delivery succeeds or an unresolved publication failure is surfaced through operational error signals.
 - **FR-008**: The system MUST preserve per-entity change ordering in published events when multiple successful changes occur sequentially for the same entity.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Catalog Change Event**: A consumer-facing record describing one committed catalog entity mutation, including operation type, entity identity, event ID, and event timestamp.
-- **Event Destination Configuration**: Runtime-managed configuration that identifies where catalog change events are delivered.
+- **Event Destination Configuration**: Separate SSM parameters for the SQS queue name and URL; provisioning and configuration of the queue itself are outside this feature's scope.
 - **Publication Failure Signal**: Operationally visible record indicating that an event could not be delivered after retries and requires intervention.
 
 ## Success Criteria *(mandatory)*
@@ -93,5 +101,6 @@ As an operator, I need failed mutations to avoid publishing success-like events 
 
 - The dependent consumer’s catalog-event contract in `ServerlessOpsIO/backstage-app` is authoritative for event shape and required fields.
 - The event destination used by consumers already exists and is managed outside this feature’s scope.
+- The queue name and URL are available through separate SSM parameters following the `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl` naming pattern.
 - This feature covers entity mutations initiated through this API’s create, update/upsert, and delete behaviors for catalog entities.
 - Consumers can handle at-least-once delivery semantics by using the event identifier for deduplication.
