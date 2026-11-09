@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serverlessops.io/contracts/catalog-change-event.schema.json",
+  "title": "CatalogChangeEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "changeType",
+    "entityRef",
+    "entity"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique ID for one logical entity mutation; retries of that mutation must reuse this ID."
+    },
+    "changeType": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Mutation classification derived from committed state change."
+    },
+    "entityRef": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/]+/[^/]+/[^/]+$",
+      "description": "Stable identity in <namespace>/<kind>/<name> form."
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "apiVersion",
+        "kind",
+        "metadata"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
