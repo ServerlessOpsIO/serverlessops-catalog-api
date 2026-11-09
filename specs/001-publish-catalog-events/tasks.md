@@ -20,10 +20,10 @@
 
 **⚠️ CRITICAL**: No user story work starts before this phase completes.
 
-- [ ] T005 Enable DynamoDB stream (`NEW_AND_OLD_IMAGES`) and explicit stateful policies on `DdbTable` in `template.yaml`
-- [ ] T006 Add SSM queue discovery for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`, and add a `SqsQueueArn` CloudFormation parameter of type `AWS::SSM::Parameter::Value<String>` using `/platform/backstage/backstage-app/main/SqsQueueArn` in `template.yaml`
-- [ ] T007 Create least-privilege EventBridge Pipe execution IAM roles/policies (stream read + queue send) in `template.yaml`
-- [ ] T008 [P] Add publication failure observability primitives (log group, metric filter, alarm) in `template.yaml`
+- [X] T005 Enable DynamoDB stream (`NEW_AND_OLD_IMAGES`) and explicit stateful policies on `DdbTable` in `template.yaml`
+- [X] T006 Add SSM queue discovery for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`, and add a `SqsQueueArn` CloudFormation parameter of type `AWS::SSM::Parameter::Value<String>` using `/platform/backstage/backstage-app/main/SqsQueueArn` in `template.yaml`
+- [X] T007 Create least-privilege EventBridge Pipe execution IAM roles/policies (stream read + queue send) in `template.yaml`
+- [X] T008 [P] Add publication failure observability primitives (log group, metric filter, alarm) in `template.yaml`
 
 **Checkpoint**: Foundation ready for user-story delivery.
 

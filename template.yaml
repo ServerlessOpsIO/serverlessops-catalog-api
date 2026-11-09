@@ -31,6 +31,11 @@ Parameters:
     Type: String
     Description: Cognito User Pool ARN
 
+  SqsQueueArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /platform/backstage/backstage-app/main/SqsQueueArn
+    Description: ARN of the Backstage catalog events FIFO queue
+
   # NOTE: This project's `yarn run sam:build` doesn't handle cfn-parameters.json so if we want
   # to change these values to effect the build we need to do it here.
   EnableSourceMaps:
@@ -71,6 +76,81 @@ Resources:
         - AttributeName: sk
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  CatalogEventPipeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/vendedlogs/pipes/${AWS::StackName}-catalog-events'
+      RetentionInDays: 30
+
+  CatalogEventPipeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pipes.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:pipes:${AWS::Region}:${AWS::AccountId}:pipe/*'
+      Policies:
+        - PolicyName: CatalogEventPipeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                Resource: !GetAtt DdbTable.StreamArn
+              - Effect: Allow
+                Action:
+                  - dynamodb:ListStreams
+                Resource: '*' # ListStreams does not support resource-level permissions.
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !Ref SqsQueueArn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${CatalogEventPipeLogGroup.Arn}:*'
+
+  CatalogEventPipeFailureMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CatalogEventPipeLogGroup
+      FilterPattern: '"ExecutionFailed"'
+      MetricTransformations:
+        - MetricName: CatalogEventPipeFailures
+          MetricNamespace: ServerlessOps/CatalogEvents
+          MetricValue: '1'
+
+  CatalogEventPipeFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-catalog-event-pipe-failures'
+      AlarmDescription: One or more catalog event pipe executions failed.
+      Namespace: ServerlessOps/CatalogEvents
+      MetricName: CatalogEventPipeFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
 
   # Functions
   CreateEntityFunction:
