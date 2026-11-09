@@ -24,13 +24,13 @@ As a downstream catalog consumer, I need an event whenever a catalog entity is c
 
 **Why this priority**: This is the core value of the feature and the explicit business objective of the request.
 
-**Independent Test**: Can be fully tested by performing create, update, and delete mutations and verifying that one corresponding event is available to consumers for each successful state change.
+**Independent Test**: Can be fully tested by performing create, update, and delete mutations and verifying that one corresponding logical event is available to consumers for each successful state change. Delivery may be duplicated; consumers identify duplicates by stable `eventId`.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid create mutation that stores a new entity, **When** the mutation succeeds, **Then** a single create event for that entity is published for consumers.
-2. **Given** a valid update mutation that changes an existing entity, **When** the mutation succeeds, **Then** a single update event for that entity is published for consumers.
-3. **Given** a valid delete mutation that removes an existing entity, **When** the mutation succeeds, **Then** a single delete event for that entity is published for consumers.
+1. **Given** a valid create mutation that stores a new entity, **When** the mutation succeeds, **Then** one logical create event for that entity is published for consumers.
+2. **Given** a valid update mutation that changes an existing entity, **When** the mutation succeeds, **Then** one logical update event for that entity is published for consumers.
+3. **Given** a valid delete mutation that removes an existing entity, **When** the mutation succeeds, **Then** one logical delete event for that entity is published for consumers.
 
 ---
 
@@ -77,15 +77,15 @@ As an operator, I need failed mutations to avoid publishing success-like events 
 - **FR-002**: The system MUST classify each published event with the effective change type (create, update, or delete) that occurred in persisted state.
 - **FR-003**: The system MUST include entity identity (namespace, kind, and name), event occurrence timestamp, and a unique event identifier in every published event.
 - **FR-004**: The system MUST produce events that conform to the shared catalog-event contract referenced by the dependent consumer specification.
-- **FR-005**: The system MUST discover the SQS queue name and URL through separate centrally managed SSM parameters rather than hardcoded destination identifiers.
+- **FR-005**: The system MUST discover the SQS queue name and URL through separate centrally managed SSM parameters and resolve the queue ARN through an SSM-backed CloudFormation parameter, rather than hardcoding destination identifiers.
 - **FR-006**: The system MUST NOT publish a catalog change event for mutation requests that fail before persisting a state change.
 - **FR-007**: After a successful mutation, the system MUST keep the committed change successful and durably retry event delivery after transient publication failures until delivery succeeds or an unresolved publication failure is surfaced through operational error signals.
 - **FR-008**: The system MUST preserve per-entity change ordering in published events when multiple successful changes occur sequentially for the same entity.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Catalog Change Event**: A consumer-facing record describing one committed catalog entity mutation, including operation type, entity identity, event ID, and event timestamp.
-- **Event Destination Configuration**: Separate SSM parameters for the SQS queue name and URL; provisioning and configuration of the queue itself are outside this feature's scope.
+- **Catalog Change Event**: A consumer-facing logical record describing one committed catalog entity mutation, including operation type, entity identity, event ID, and event timestamp. Delivery is at-least-once, so consumers may receive duplicate deliveries and deduplicate by `eventId`.
+- **Event Destination Configuration**: Separate SSM parameters for the SQS queue name and URL, plus an SSM-backed CloudFormation parameter for the queue ARN at `/platform/backstage/backstage-app/main/SqsQueueArn`; provisioning and configuration of the queue itself are outside this feature's scope.
 - **Publication Failure Signal**: Operationally visible record indicating that an event could not be delivered after retries and requires intervention.
 
 ## Success Criteria *(mandatory)*
@@ -100,7 +100,7 @@ As an operator, I need failed mutations to avoid publishing success-like events 
 ## Assumptions
 
 - The dependent consumer’s catalog-event contract in `ServerlessOpsIO/backstage-app` is authoritative for event shape and required fields.
-- The event destination used by consumers already exists and is managed outside this feature’s scope.
+- The event destination used by consumers already exists and is managed outside this feature’s scope; its ARN is supplied through the SSM parameter `/platform/backstage/backstage-app/main/SqsQueueArn`.
 - The queue name and URL are available through separate SSM parameters following the `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl` naming pattern.
 - This feature covers entity mutations initiated through this API’s create, update/upsert, and delete behaviors for catalog entities.
 - Consumers can handle at-least-once delivery semantics by using the event identifier for deduplication.
