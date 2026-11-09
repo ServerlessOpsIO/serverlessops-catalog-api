@@ -18,13 +18,15 @@ Run from repository root:
 
 ```bash
 yarn install
-yarn test
+yarn run compile
+yarn run test:unit
+yarn run lint
 sam validate --lint
 ```
 
 Expected outcome:
-- Unit tests pass.
-- SAM template and OpenAPI validations pass.
+- TypeScript compilation, unit tests, and lint pass.
+- SAM template and OpenAPI validations pass. CI runs unit tests and lint before template validation and packaging.
 
 ## 2) Build and deploy the stack
 

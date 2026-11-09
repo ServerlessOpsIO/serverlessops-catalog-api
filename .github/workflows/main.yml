@@ -30,10 +30,14 @@ jobs:
       - name: Install AWS SAM
         uses: aws-actions/setup-sam@v3
 
+      - name: Run unit tests
+        run: yarn run test:unit
+
+      - name: Lint
+        run: yarn run lint
+
       - name: Validate template
         run: sam validate --lint
-
-      # TODO: Need to run tests when we have them
 
       - name: Build artifact
         run: yarn run sam:build

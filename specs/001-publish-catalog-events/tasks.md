@@ -98,9 +98,9 @@
 
 **Purpose**: Finish integration quality gates and documentation updates across stories.
 
-- [ ] T026 [P] Add CI steps to run `yarn run test:unit` followed by `yarn run lint` before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
-- [ ] T027 [P] Update service-level event publication documentation in `README.md`
-- [ ] T028 Run final validation command updates and expected outcomes in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T026 [P] Add CI steps to run `yarn run test:unit` followed by `yarn run lint` before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
+- [X] T027 [P] Update service-level event publication documentation in `README.md`
+- [X] T028 Run final validation command updates and expected outcomes in `specs/001-publish-catalog-events/quickstart.md`
 
 ---
 
