@@ -5,7 +5,7 @@ This guide validates end-to-end behavior for publishing catalog mutation events 
 ## Prerequisites
 
 - AWS credentials for the target account/environment.
-- Existing SQS FIFO queue and DLQ already provisioned (outside this feature scope).
+- Existing SQS FIFO destination queue provisioned by the Backstage app stack.
 - SSM parameters present for queue discovery:
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName`
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`
@@ -82,12 +82,14 @@ Expected outcome:
 
 ## 7) Validate failure visibility path
 
-Introduce a controlled publish failure (for example queue policy deny or transient destination disruption) and restore afterward.
+In a non-production environment, introduce a controlled publish failure (for example, temporarily deny the Pipe role permission to send to the destination queue), then restore the permission.
 
 Expected outcome:
 - Mutation remains committed.
-- Delivery retries occur automatically.
-- Unresolved failures are visible via DLQ/alarm/log operational signals.
+- Each Pipe retries a failed stream record up to five times and stops retrying after 24 hours.
+- Unresolved records are sent to the producer stack's `CatalogEventPipeFailureQueue`; the queue ARN and URL are exposed as stack outputs.
+- The `CatalogEventPipeFailureAlarm` enters ALARM when a Pipe execution failure is logged. Inspect the failure queue and correlate the original stream record's `eventID` and `dynamodb.Keys.sk.S` before replay or investigation.
+- Restore the destination permission and redrive/replay the failed record using the documented operational procedure for the environment. Avoid logging message bodies or DynamoDB images while investigating.
 
 ## References
 

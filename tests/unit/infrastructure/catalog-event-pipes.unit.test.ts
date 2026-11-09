@@ -32,6 +32,80 @@ describe('catalog event pipes', () => {
     }
   })
 
+  it('resolves the target ARN from the consumer queue SSM parameter', () => {
+    const parameter = template.Parameters?.SqsQueueArn
+    const pipes = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+
+    expect(parameter).toEqual(
+      {
+        Type: 'AWS::SSM::Parameter::Value<String>',
+        Default: '/platform/backstage/backstage-app/main/SqsQueueArn',
+        Description: 'ARN of the Backstage catalog events FIFO queue',
+      },
+    )
+    expect(pipes.map(([, pipe]) => pipe.Properties?.Target)).toEqual(
+      pipes.map(() => ({ Ref: 'SqsQueueArn' })),
+    )
+  })
+
+  it('configures bounded retries and a source failure queue for every pipe', () => {
+    const failureQueue = getSamResource(template, 'CatalogEventPipeFailureQueue')
+    const pipes = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+    const role = getSamResource(template, 'CatalogEventPipeRole')
+    const alarm = getSamResource(template, 'CatalogEventPipeFailureAlarm')
+
+    expect(failureQueue).toEqual(
+      expect.objectContaining({
+        Type: 'AWS::SQS::Queue',
+        Properties: expect.objectContaining({
+          MessageRetentionPeriod: 1209600,
+          SqsManagedSseEnabled: true,
+        }),
+      }),
+    )
+
+    expect(role.Properties?.Policies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          PolicyDocument: expect.objectContaining({
+            Statement: expect.arrayContaining([
+              expect.objectContaining({
+                Action: ['sqs:SendMessage'],
+                Resource: { 'Fn::GetAtt': ['CatalogEventPipeFailureQueue', 'Arn'] },
+              }),
+            ]),
+          }),
+        }),
+      ]),
+    )
+
+    for (const [, pipe] of pipes) {
+      expect(pipe.Properties?.SourceParameters).toEqual(
+        expect.objectContaining({
+          DynamoDBStreamParameters: expect.objectContaining({
+            MaximumRecordAgeInSeconds: 86400,
+            MaximumRetryAttempts: 5,
+            DeadLetterConfig: {
+              Arn: { 'Fn::GetAtt': ['CatalogEventPipeFailureQueue', 'Arn'] },
+            },
+          }),
+        }),
+      )
+    }
+
+    const alarmDescription = alarm.Properties?.AlarmDescription as {
+      'Fn::Sub': string
+    }
+    expect(alarmDescription['Fn::Sub']).toContain('CatalogEventPipeFailureQueue')
+    expect(alarmDescription['Fn::Sub']).toContain('eventID')
+    expect(alarmDescription['Fn::Sub']).toContain('dynamodb.Keys.sk.S')
+    expect(template.Outputs?.CatalogEventPipeFailureQueueArn).toEqual({
+      Description:
+        'ARN of the queue containing catalog stream records that exhausted Pipe retries',
+      Value: { 'Fn::GetAtt': ['CatalogEventPipeFailureQueue', 'Arn'] },
+    })
+  })
+
   it.each([
     ['CatalogEventInsertPipe', 'INSERT', 'create', 'NewImage'],
     ['CatalogEventModifyPipe', 'MODIFY', 'update', 'NewImage'],

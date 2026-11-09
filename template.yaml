@@ -87,6 +87,12 @@ Resources:
       LogGroupName: !Sub '/aws/vendedlogs/pipes/${AWS::StackName}-catalog-events'
       RetentionInDays: 30
 
+  CatalogEventPipeFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
   CatalogEventPipeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -123,6 +129,10 @@ Resources:
                 Resource: !Ref SqsQueueArn
               - Effect: Allow
                 Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt CatalogEventPipeFailureQueue.Arn
+              - Effect: Allow
+                Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub '${CatalogEventPipeLogGroup.Arn}:*'
@@ -138,6 +148,10 @@ Resources:
         DynamoDBStreamParameters:
           StartingPosition: LATEST
           BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
         FilterCriteria:
           Filters:
             - Pattern: '{"eventName":["INSERT"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
@@ -170,6 +184,10 @@ Resources:
         DynamoDBStreamParameters:
           StartingPosition: LATEST
           BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
         FilterCriteria:
           Filters:
             - Pattern: '{"eventName":["MODIFY"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
@@ -202,6 +220,10 @@ Resources:
         DynamoDBStreamParameters:
           StartingPosition: LATEST
           BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
         FilterCriteria:
           Filters:
             - Pattern: '{"eventName":["REMOVE"],"dynamodb":{"OldImage":{"itemType":{"S":["entity"]}}}}'
@@ -237,7 +259,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub '${AWS::StackName}-catalog-event-pipe-failures'
-      AlarmDescription: One or more catalog event pipe executions failed.
+      AlarmDescription: !Sub 'Catalog event delivery failed. Inspect ${CatalogEventPipeFailureQueue} for the original stream record, then correlate its eventID and dynamodb.Keys.sk.S to replay or investigate the entity.'
       Namespace: ServerlessOps/CatalogEvents
       MetricName: CatalogEventPipeFailures
       Statistic: Sum
@@ -425,3 +447,12 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "openapi.yaml"
+
+Outputs:
+  CatalogEventPipeFailureQueueArn:
+    Description: ARN of the queue containing catalog stream records that exhausted Pipe retries
+    Value: !GetAtt CatalogEventPipeFailureQueue.Arn
+
+  CatalogEventPipeFailureQueueUrl:
+    Description: URL of the queue containing catalog stream records that exhausted Pipe retries
+    Value: !Ref CatalogEventPipeFailureQueue

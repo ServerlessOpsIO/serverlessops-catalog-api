@@ -80,15 +80,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add no-op upsert and failed-mutation unit tests in `src/handlers/CreateEntity/function.unit.test.ts` and `src/handlers/DeleteEntity/function.unit.test.ts`
-- [ ] T021 [P] [US3] Add destination-configuration validation tests in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` to assert `queueName`, `queueUrl`, and `SqsQueueArn` resolve to the same queue resource.
+- [X] T020 [P] [US3] Add no-op upsert and failed-mutation unit tests in `src/handlers/CreateEntity/function.unit.test.ts` and `src/handlers/DeleteEntity/function.unit.test.ts`
+- [X] T021 [P] [US3] Validate the producer's SSM-backed ARN target in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` and assert the consumer's name, URL, and ARN parameters all reference the same FIFO queue in `backstage-app/src/plugins/catalog-backend-module-serverlessops-catalog/src/events/catalogEventQueueParameters.test.ts`.
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Refactor upsert write path in `src/handlers/CreateEntity/function.ts` to suppress no-op writes so unchanged entities do not emit change events
-- [ ] T023 [US3] Configure pipe retry and dead-letter routing in `template.yaml` so unresolved failures are surfaced and "Must be emitted for unresolved failures (no silent drops)."
-- [ ] T024 [US3] Add failure-signal observability fields and alarm context in `template.yaml` and `specs/001-publish-catalog-events/quickstart.md` so signals "Must include enough fields for operator triage and replay correlation."
-- [ ] T025 [US3] Document controlled failure-injection validation for unresolved delivery signals in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T022 [US3] Refactor upsert write path in `src/handlers/CreateEntity/function.ts` to suppress no-op writes so unchanged entities do not emit change events
+- [X] T023 [US3] Configure pipe retry and dead-letter routing in `template.yaml` so unresolved failures are surfaced and "Must be emitted for unresolved failures (no silent drops)."
+- [X] T024 [US3] Add failure-signal observability fields and alarm context in `template.yaml` and `specs/001-publish-catalog-events/quickstart.md` so signals "Must include enough fields for operator triage and replay correlation."
+- [X] T025 [US3] Document controlled failure-injection validation for unresolved delivery signals in `specs/001-publish-catalog-events/quickstart.md`
 
 **Checkpoint**: User Story 3 independently verifies trustworthy event semantics and failure visibility.
 

@@ -9,6 +9,8 @@ interface SamResource {
 
 export interface SamTemplate {
   Resources: Record<string, SamResource>
+  Parameters?: Record<string, unknown>
+  Outputs?: Record<string, unknown>
 }
 
 const cloudFormationSchema = DEFAULT_SCHEMA.extend([
