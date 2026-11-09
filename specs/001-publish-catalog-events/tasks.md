@@ -7,10 +7,10 @@
 
 **Purpose**: Prepare test scaffolding and shared assets used by all stories.
 
-- [ ] T001 Add contract-validation and AWS SDK client-mock test dependencies in `package.json`
-- [ ] T002 [P] Add event payload fixtures for create/update/delete in `specs/001-publish-catalog-events/contracts/fixtures/create-event.json`, `specs/001-publish-catalog-events/contracts/fixtures/update-event.json`, and `specs/001-publish-catalog-events/contracts/fixtures/delete-event.json`
-- [ ] T003 [P] Add schema test helper for loading/compiling `specs/001-publish-catalog-events/contracts/catalog-change-event.schema.json` in `tests/support/catalog-change-event-schema.ts`
-- [ ] T004 [P] Add SAM template test helper for resource lookups in `tests/support/template-resource-loader.ts`
+- [X] T001 Add contract-validation and AWS SDK client-mock test dependencies in `package.json`
+- [X] T002 [P] Add event payload fixtures for create/update/delete in `specs/001-publish-catalog-events/contracts/fixtures/create-event.json`, `specs/001-publish-catalog-events/contracts/fixtures/update-event.json`, and `specs/001-publish-catalog-events/contracts/fixtures/delete-event.json`
+- [X] T003 [P] Add schema test helper for loading/compiling `specs/001-publish-catalog-events/contracts/catalog-change-event.schema.json` in `tests/support/catalog-change-event-schema.ts`
+- [X] T004 [P] Add SAM template test helper for resource lookups in `tests/support/template-resource-loader.ts`
 
 ---
 
@@ -20,10 +20,10 @@
 
 **⚠️ CRITICAL**: No user story work starts before this phase completes.
 
-- [ ] T005 Enable DynamoDB stream (`NEW_AND_OLD_IMAGES`) and explicit stateful policies on `DdbTable` in `template.yaml`
-- [ ] T006 Add SSM queue discovery for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`, and add a `SqsQueueArn` CloudFormation parameter of type `AWS::SSM::Parameter::Value<String>` using `/platform/backstage/backstage-app/main/SqsQueueArn` in `template.yaml`
-- [ ] T007 Create least-privilege EventBridge Pipe execution IAM roles/policies (stream read + queue send) in `template.yaml`
-- [ ] T008 [P] Add publication failure observability primitives (log group, metric filter, alarm) in `template.yaml`
+- [X] T005 Enable DynamoDB stream (`NEW_AND_OLD_IMAGES`) and explicit stateful policies on `DdbTable` in `template.yaml`
+- [X] T006 Add SSM queue discovery for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`, and add a `SqsQueueArn` CloudFormation parameter of type `AWS::SSM::Parameter::Value<String>` using `/platform/backstage/backstage-app/main/SqsQueueArn` in `template.yaml`
+- [X] T007 Create least-privilege EventBridge Pipe execution IAM roles/policies (stream read + queue send) in `template.yaml`
+- [X] T008 [P] Add publication failure observability primitives (log group, metric filter, alarm) in `template.yaml`
 
 **Checkpoint**: Foundation ready for user-story delivery.
 
@@ -37,15 +37,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Add infrastructure unit tests for stream enablement and pipe wiring in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts`
+- [X] T009 [P] [US1] Add infrastructure unit tests for stream enablement and pipe wiring in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add INSERT pipe in `template.yaml` mapping DynamoDB `INSERT` to `changeType=create` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T011 [US1] Add MODIFY pipe in `template.yaml` mapping DynamoDB `MODIFY` to `changeType=update` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T012 [US1] Add REMOVE pipe in `template.yaml` mapping DynamoDB `REMOVE` to `changeType=delete` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T013 [US1] Configure FIFO ordering/dedup parameters in `template.yaml` so per-entity ordering is preserved and retries reuse stable event identifiers
-- [ ] T014 [US1] Update verification steps for create/update/delete publication in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T010 [US1] Add INSERT pipe in `template.yaml` mapping DynamoDB `INSERT` to `changeType=create` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T011 [US1] Add MODIFY pipe in `template.yaml` mapping DynamoDB `MODIFY` to `changeType=update` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T012 [US1] Add REMOVE pipe in `template.yaml` mapping DynamoDB `REMOVE` to `changeType=delete` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T013 [US1] Configure FIFO ordering/dedup parameters in `template.yaml` so per-entity ordering is preserved and retries reuse stable event identifiers
+- [X] T014 [US1] Update verification steps for create/update/delete publication in `specs/001-publish-catalog-events/quickstart.md`
 
 **Checkpoint**: User Story 1 works independently and satisfies MVP publication flow.
 
@@ -59,14 +59,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Add schema validation tests for emitted payload fixtures in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts`
-- [ ] T016 [P] [US2] Add negative-case schema tests in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts` to assert "`changeType` unsupported values are rejected." and "`entity.metadata.name` is required for all message types."
+- [X] T015 [P] [US2] Add schema validation tests for emitted payload fixtures in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts`
+- [X] T016 [P] [US2] Add negative-case schema tests in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts` to assert "`changeType` unsupported values are rejected." and "`entity.metadata.name` is required for all message types."
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Update pipe input templates in `template.yaml` so required payload fields are always present and "Payload must satisfy `catalog-change-event.schema.json`."
-- [ ] T018 [US2] Map identity fields from stream records in `template.yaml` so "Identity in event payload must be derived from persisted keys/attributes, not request-only values." and "`entityRef` must match `^[^/]+/[^/]+/[^/]+$`."
-- [ ] T019 [US2] Align producer contract details and references in `specs/001-publish-catalog-events/contracts/event-publication-contract.md`
+- [X] T017 [US2] Update pipe input templates in `template.yaml` so required payload fields are always present and "Payload must satisfy `catalog-change-event.schema.json`."
+- [X] T018 [US2] Map identity fields from stream records in `template.yaml` so "Identity in event payload must be derived from persisted keys/attributes, not request-only values." and "`entityRef` must match `^[^/]+/[^/]+/[^/]+$`."
+- [X] T019 [US2] Align producer contract details and references in `specs/001-publish-catalog-events/contracts/event-publication-contract.md`
 
 **Checkpoint**: User Story 2 passes independent schema/contract validation.
 
@@ -80,15 +80,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add no-op upsert and failed-mutation unit tests in `src/handlers/CreateEntity/function.unit.test.ts` and `src/handlers/DeleteEntity/function.unit.test.ts`
-- [ ] T021 [P] [US3] Add destination-configuration validation tests in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` to assert `queueName`, `queueUrl`, and `SqsQueueArn` resolve to the same queue resource.
+- [X] T020 [P] [US3] Add no-op upsert and failed-mutation unit tests in `src/handlers/CreateEntity/function.unit.test.ts` and `src/handlers/DeleteEntity/function.unit.test.ts`
+- [X] T021 [P] [US3] Validate the producer's SSM-backed ARN target in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` and assert the consumer's name, URL, and ARN parameters all reference the same FIFO queue in `backstage-app/src/plugins/catalog-backend-module-serverlessops-catalog/src/events/catalogEventQueueParameters.test.ts`.
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Refactor upsert write path in `src/handlers/CreateEntity/function.ts` to suppress no-op writes so unchanged entities do not emit change events
-- [ ] T023 [US3] Configure pipe retry and dead-letter routing in `template.yaml` so unresolved failures are surfaced and "Must be emitted for unresolved failures (no silent drops)."
-- [ ] T024 [US3] Add failure-signal observability fields and alarm context in `template.yaml` and `specs/001-publish-catalog-events/quickstart.md` so signals "Must include enough fields for operator triage and replay correlation."
-- [ ] T025 [US3] Document controlled failure-injection validation for unresolved delivery signals in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T022 [US3] Refactor upsert write path in `src/handlers/CreateEntity/function.ts` to suppress no-op writes so unchanged entities do not emit change events
+- [X] T023 [US3] Configure pipe retry and dead-letter routing in `template.yaml` so unresolved failures are surfaced and "Must be emitted for unresolved failures (no silent drops)."
+- [X] T024 [US3] Add failure-signal observability fields and alarm context in `template.yaml` and `specs/001-publish-catalog-events/quickstart.md` so signals "Must include enough fields for operator triage and replay correlation."
+- [X] T025 [US3] Document controlled failure-injection validation for unresolved delivery signals in `specs/001-publish-catalog-events/quickstart.md`
 
 **Checkpoint**: User Story 3 independently verifies trustworthy event semantics and failure visibility.
 
@@ -98,9 +98,9 @@
 
 **Purpose**: Finish integration quality gates and documentation updates across stories.
 
-- [ ] T026 [P] Add CI steps to run `yarn run test:unit` followed by `yarn run lint` before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
-- [ ] T027 [P] Update service-level event publication documentation in `README.md`
-- [ ] T028 Run final validation command updates and expected outcomes in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T026 [P] Add CI steps to run `yarn run test:unit` followed by `yarn run lint` before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
+- [X] T027 [P] Update service-level event publication documentation in `README.md`
+- [X] T028 Run final validation command updates and expected outcomes in `specs/001-publish-catalog-events/quickstart.md`
 
 ---
 

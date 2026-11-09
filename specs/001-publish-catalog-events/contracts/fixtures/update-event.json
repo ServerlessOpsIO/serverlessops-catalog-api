@@ -1,0 +1,27 @@
+{
+  "eventId": "evt-update-1",
+  "changeType": "update",
+  "entityRef": "default/component/payments-api",
+  "entity": {
+    "pk": { "S": "default/component" },
+    "sk": { "S": "default/component/payments-api" },
+    "itemType": { "S": "entity" },
+    "apiVersion": { "S": "backstage.io/v1alpha1" },
+    "kind": { "S": "Component" },
+    "metadata": {
+      "M": {
+        "name": { "S": "payments-api" },
+        "namespace": { "S": "default" }
+      }
+    },
+    "spec": {
+      "M": {
+        "type": { "S": "service" },
+        "owner": { "S": "payments-platform-team" }
+      }
+    }
+  },
+  "source": "serverlessops-catalog-api",
+  "occurredAt": "2026-11-08T12:01:00Z",
+  "schemaVersion": "1"
+}

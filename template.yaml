@@ -31,6 +31,11 @@ Parameters:
     Type: String
     Description: Cognito User Pool ARN
 
+  SqsQueueArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /platform/backstage/backstage-app/main/SqsQueueArn
+    Description: ARN of the Backstage catalog events FIFO queue
+
   # NOTE: This project's `yarn run sam:build` doesn't handle cfn-parameters.json so if we want
   # to change these values to effect the build we need to do it here.
   EnableSourceMaps:
@@ -71,6 +76,199 @@ Resources:
         - AttributeName: sk
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  CatalogEventPipeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/vendedlogs/pipes/${AWS::StackName}-catalog-events'
+      RetentionInDays: 30
+
+  CatalogEventPipeFailureQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  CatalogEventPipeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: pipes.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:pipes:${AWS::Region}:${AWS::AccountId}:pipe/*'
+      Policies:
+        - PolicyName: CatalogEventPipeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                Resource: !GetAtt DdbTable.StreamArn
+              - Effect: Allow
+                Action:
+                  - dynamodb:ListStreams
+                Resource: '*' # ListStreams does not support resource-level permissions.
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !Ref SqsQueueArn
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt CatalogEventPipeFailureQueue.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${CatalogEventPipeLogGroup.Arn}:*'
+
+  CatalogEventInsertPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["INSERT"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "create",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.NewImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
+  CatalogEventModifyPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["MODIFY"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "update",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.NewImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
+  CatalogEventRemovePipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+          MaximumRetryAttempts: 5
+          MaximumRecordAgeInSeconds: 86400
+          DeadLetterConfig:
+            Arn: !GetAtt CatalogEventPipeFailureQueue.Arn
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["REMOVE"],"dynamodb":{"OldImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "delete",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.OldImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
+  CatalogEventPipeFailureMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref CatalogEventPipeLogGroup
+      FilterPattern: '"ExecutionFailed"'
+      MetricTransformations:
+        - MetricName: CatalogEventPipeFailures
+          MetricNamespace: ServerlessOps/CatalogEvents
+          MetricValue: '1'
+
+  CatalogEventPipeFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-catalog-event-pipe-failures'
+      AlarmDescription: !Sub 'Catalog event delivery failed. Inspect ${CatalogEventPipeFailureQueue} for the original stream record, then correlate its eventID and dynamodb.Keys.sk.S to replay or investigate the entity.'
+      Namespace: ServerlessOps/CatalogEvents
+      MetricName: CatalogEventPipeFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
 
   # Functions
   CreateEntityFunction:
@@ -249,3 +447,12 @@ Resources:
           Name: "AWS::Include"
           Parameters:
             Location: "openapi.yaml"
+
+Outputs:
+  CatalogEventPipeFailureQueueArn:
+    Description: ARN of the queue containing catalog stream records that exhausted Pipe retries
+    Value: !GetAtt CatalogEventPipeFailureQueue.Arn
+
+  CatalogEventPipeFailureQueueUrl:
+    Description: URL of the queue containing catalog stream records that exhausted Pipe retries
+    Value: !Ref CatalogEventPipeFailureQueue

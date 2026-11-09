@@ -1,0 +1,21 @@
+{
+  "eventId": "evt-delete-1",
+  "changeType": "delete",
+  "entityRef": "default/component/payments-api",
+  "entity": {
+    "pk": { "S": "default/component" },
+    "sk": { "S": "default/component/payments-api" },
+    "itemType": { "S": "entity" },
+    "apiVersion": { "S": "backstage.io/v1alpha1" },
+    "kind": { "S": "Component" },
+    "metadata": {
+      "M": {
+        "name": { "S": "payments-api" },
+        "namespace": { "S": "default" }
+      }
+    }
+  },
+  "source": "serverlessops-catalog-api",
+  "occurredAt": "2026-11-08T12:02:00Z",
+  "schemaVersion": "1"
+}

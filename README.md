@@ -112,3 +112,21 @@ This is an AWS serverless service. It is built on top of the following AWS servi
 
 ## Authentication and Authorization
 This service is configured to use a pre-existing Cognito User Pool. Clients should obtain a JWT from the Cognito token endpoint using the client's clientId and clientSecret. Each endpoint's scope requirements are defined in the [OpenAPI document](./openapi.yaml).
+
+## Catalog event publication
+
+Successful catalog entity changes are published asynchronously from the DynamoDB
+table stream through EventBridge Pipes to the Backstage app's SQS FIFO queue.
+Create and update events use the stream's `NewImage`; delete events use
+`OldImage`. Events are filtered to entity records and carry an `eventId` for
+deduplicating retries and an `entityRef` derived from the persisted sort key.
+FIFO message groups preserve ordering per entity. Upserts that do not change
+the stored entity are skipped and do not emit an update event.
+
+The producer resolves the destination ARN from the
+`/platform/backstage/backstage-app/main/SqsQueueArn` SSM parameter. Each Pipe
+retries failed deliveries with bounded attempts and record age; exhausted
+records are routed to the producer stack's `CatalogEventPipeFailureQueue`.
+Inspect the `CatalogEventPipeFailureAlarm` and that queue when investigating
+delivery failures. See the [event publication quickstart](./specs/001-publish-catalog-events/quickstart.md)
+for validation and failure-triage steps.

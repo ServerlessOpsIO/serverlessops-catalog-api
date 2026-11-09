@@ -8,13 +8,16 @@ import {
 } from '@aws-lambda-powertools/logger'
 import {
     DynamoDBClient,
+    GetItemCommand,
     PutItemCommand,
     PutItemCommandInput,
     DynamoDBServiceException
 } from '@aws-sdk/client-dynamodb'
 import {
-    marshall
+    marshall,
+    unmarshall
 } from '@aws-sdk/util-dynamodb'
+import { isDeepStrictEqual } from 'node:util'
 import {
     Entity
 } from '@backstage/catalog-model'
@@ -39,10 +42,28 @@ export async function putEntity(entity: Entity, upsert: boolean): Promise<void> 
     const name = entity.metadata.name
 
     const item: Item = {
+        ...entity,
         'pk': `${namespace}/${kind}`,
         'sk': `${namespace}/${kind}/${name}`,
-        'itemType': 'entity',
-        ...entity
+        'itemType': 'entity'
+    }
+
+    const key = {
+        'pk': {S: `${namespace}/${kind}`},
+        'sk': {S: `${namespace}/${kind}/${name}`}
+    }
+
+    if (upsert) {
+        const existing = await DDB_CLIENT.send(new GetItemCommand({
+            TableName: DDB_TABLE_NAME,
+            Key: key,
+            ConsistentRead: true
+        }))
+
+        if (existing.Item && isDeepStrictEqual(unmarshall(existing.Item), item)) {
+            LOGGER.debug('PutItemCommand skipped because the entity is unchanged')
+            return
+        }
     }
 
     const params: PutItemCommandInput = {
