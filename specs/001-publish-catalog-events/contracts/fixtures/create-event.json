@@ -1,0 +1,20 @@
+{
+  "eventId": "evt-create-1",
+  "changeType": "create",
+  "entityRef": "default/component/payments-api",
+  "entity": {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Component",
+    "metadata": {
+      "name": "payments-api",
+      "namespace": "default"
+    },
+    "spec": {
+      "type": "service",
+      "owner": "payments-team"
+    }
+  },
+  "source": "serverlessops-catalog-api",
+  "occurredAt": "2026-11-08T12:00:00Z",
+  "schemaVersion": "1"
+}

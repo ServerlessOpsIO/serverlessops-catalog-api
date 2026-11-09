@@ -1,0 +1,20 @@
+{
+  "eventId": "evt-update-1",
+  "changeType": "update",
+  "entityRef": "default/component/payments-api",
+  "entity": {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Component",
+    "metadata": {
+      "name": "payments-api",
+      "namespace": "default"
+    },
+    "spec": {
+      "type": "service",
+      "owner": "payments-platform-team"
+    }
+  },
+  "source": "serverlessops-catalog-api",
+  "occurredAt": "2026-11-08T12:01:00Z",
+  "schemaVersion": "1"
+}

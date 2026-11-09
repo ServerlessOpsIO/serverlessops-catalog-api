@@ -12,7 +12,7 @@ lib-cov
 coverage
 
 # API keys and secrets
-.env
+.env*
 
 # Dependency management
 .yarn
@@ -34,6 +34,7 @@ Thumbs.db
 
 # Ignore Typescript build output
 dist
+build/
 
 # ignore yarn.lock
 #yarn.lock

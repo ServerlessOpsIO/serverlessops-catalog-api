@@ -1,0 +1,16 @@
+{
+  "eventId": "evt-delete-1",
+  "changeType": "delete",
+  "entityRef": "default/component/payments-api",
+  "entity": {
+    "apiVersion": "backstage.io/v1alpha1",
+    "kind": "Component",
+    "metadata": {
+      "name": "payments-api",
+      "namespace": "default"
+    }
+  },
+  "source": "serverlessops-catalog-api",
+  "occurredAt": "2026-11-08T12:02:00Z",
+  "schemaVersion": "1"
+}

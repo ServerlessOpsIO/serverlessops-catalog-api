@@ -7,10 +7,10 @@
 
 **Purpose**: Prepare test scaffolding and shared assets used by all stories.
 
-- [ ] T001 Add contract-validation and AWS SDK client-mock test dependencies in `package.json`
-- [ ] T002 [P] Add event payload fixtures for create/update/delete in `specs/001-publish-catalog-events/contracts/fixtures/create-event.json`, `specs/001-publish-catalog-events/contracts/fixtures/update-event.json`, and `specs/001-publish-catalog-events/contracts/fixtures/delete-event.json`
-- [ ] T003 [P] Add schema test helper for loading/compiling `specs/001-publish-catalog-events/contracts/catalog-change-event.schema.json` in `tests/support/catalog-change-event-schema.ts`
-- [ ] T004 [P] Add SAM template test helper for resource lookups in `tests/support/template-resource-loader.ts`
+- [X] T001 Add contract-validation and AWS SDK client-mock test dependencies in `package.json`
+- [X] T002 [P] Add event payload fixtures for create/update/delete in `specs/001-publish-catalog-events/contracts/fixtures/create-event.json`, `specs/001-publish-catalog-events/contracts/fixtures/update-event.json`, and `specs/001-publish-catalog-events/contracts/fixtures/delete-event.json`
+- [X] T003 [P] Add schema test helper for loading/compiling `specs/001-publish-catalog-events/contracts/catalog-change-event.schema.json` in `tests/support/catalog-change-event-schema.ts`
+- [X] T004 [P] Add SAM template test helper for resource lookups in `tests/support/template-resource-loader.ts`
 
 ---
 
