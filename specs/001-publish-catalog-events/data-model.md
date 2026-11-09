@@ -54,6 +54,7 @@ Represents queue discovery configuration resolved from SSM Parameter Store.
 |---|---|---|---|
 | `queueNameParameter` | string | Yes | `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName`. |
 | `queueUrlParameter` | string | Yes | `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`. |
+| `queueArnParameter` | string | Yes | CloudFormation parameter `SqsQueueArn` resolves this SSM key: `/platform/backstage/backstage-app/main/SqsQueueArn`. |
 | `queueName` | string | Yes | SQS FIFO queue name (ends with `.fifo`). |
 | `queueUrl` | string | Yes | Full queue URL matching the same queue. |
 | `queueArn` | string | Yes (derived) | Required for IAM scope and pipe target binding. |
@@ -100,4 +101,3 @@ Operationally visible unresolved-delivery signal produced when retries are exhau
    - `published`
    - `retried` (transient failure)
    - `unresolved-failure-signaled` (after retries exhausted / DLQ path)
-

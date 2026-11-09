@@ -21,7 +21,7 @@
 **⚠️ CRITICAL**: No user story work starts before this phase completes.
 
 - [ ] T005 Enable DynamoDB stream (`NEW_AND_OLD_IMAGES`) and explicit stateful policies on `DdbTable` in `template.yaml`
-- [ ] T006 Add SSM queue discovery expressions for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl` in `template.yaml`
+- [ ] T006 Add SSM queue discovery for `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName` and `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`, and add a `SqsQueueArn` CloudFormation parameter of type `AWS::SSM::Parameter::Value<String>` using `/platform/backstage/backstage-app/main/SqsQueueArn` in `template.yaml`
 - [ ] T007 Create least-privilege EventBridge Pipe execution IAM roles/policies (stream read + queue send) in `template.yaml`
 - [ ] T008 [P] Add publication failure observability primitives (log group, metric filter, alarm) in `template.yaml`
 
@@ -33,7 +33,7 @@
 
 **Goal**: Publish one consumer-available event for each successful create/update/delete mutation.
 
-**Independent Test**: Execute create, update, and delete API mutations and verify exactly one corresponding queue event per successful persisted mutation.
+**Independent Test**: Execute create, update, and delete API mutations and verify one corresponding logical event per successful persisted mutation; allow duplicate deliveries and identify them by stable `eventId`.
 
 ### Tests for User Story 1
 
@@ -81,7 +81,7 @@
 ### Tests for User Story 3
 
 - [ ] T020 [P] [US3] Add no-op upsert and failed-mutation unit tests in `src/handlers/CreateEntity/function.unit.test.ts` and `src/handlers/DeleteEntity/function.unit.test.ts`
-- [ ] T021 [P] [US3] Add destination-configuration validation tests in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` to assert "`queueName` and `queueUrl` must resolve to the same queue resource."
+- [ ] T021 [P] [US3] Add destination-configuration validation tests in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts` to assert `queueName`, `queueUrl`, and `SqsQueueArn` resolve to the same queue resource.
 
 ### Implementation for User Story 3
 
@@ -98,7 +98,7 @@
 
 **Purpose**: Finish integration quality gates and documentation updates across stories.
 
-- [ ] T026 [P] Add CI test execution (`yarn test`) before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
+- [ ] T026 [P] Add CI steps to run `yarn run test:unit` followed by `yarn run lint` before build in `.github/workflows/main.yml` and `.github/workflows/branch.yml`
 - [ ] T027 [P] Update service-level event publication documentation in `README.md`
 - [ ] T028 Run final validation command updates and expected outcomes in `specs/001-publish-catalog-events/quickstart.md`
 
@@ -189,4 +189,3 @@ Task: "T021 [US3] Add queue destination validation tests in tests/unit/infrastru
    - Engineer A: US1 infrastructure completion and quickstart validation
    - Engineer B: US2 schema/contract tests
    - Engineer C: US3 no-op suppression and failure observability
-

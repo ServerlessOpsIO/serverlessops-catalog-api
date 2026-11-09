@@ -29,7 +29,7 @@ Publish catalog mutation events by enabling DynamoDB Streams on the entity table
 **Constraints**:
 - Event publication path must be DynamoDB Stream -> EventBridge Pipe -> SQS (no synchronous API coupling).
 - Event payload must conform to shared contract from the referenced backstage spec.
-- Queue provisioning is out of scope; destination identifiers must come from SSM (no hardcoding).
+- Queue provisioning is out of scope; queue name and URL come from separate SSM parameters, and the queue ARN is resolved by an SSM-backed CloudFormation parameter named `SqsQueueArn` using `/platform/backstage/backstage-app/main/SqsQueueArn`.
 - Mutation success must remain independent from downstream delivery success.
 - Preserve per-entity ordering and at-least-once delivery semantics.
 
@@ -123,3 +123,9 @@ Phase 1 artifacts are provided at:
 5. **Principle VIII** — **PASS**: complexity remains justified and bounded to the requested flow.
 
 No constitution violations require complexity exceptions.
+
+## Complexity Tracking
+
+| Addition | Why Needed | Alternatives Considered | Operational Cost |
+|---|---|---|---|
+| EventBridge Pipes | The requested DynamoDB Stream-to-SQS path needs managed filtering and transformation without coupling delivery to API mutation handlers. | Direct handler publishing couples mutation success to SQS availability; a stream-triggered publisher Lambda adds compute and code to operate. | Adds managed Pipe charges and IAM, monitoring, and DLQ configuration; accepted because Pipes provide the requested managed integration without another function. |

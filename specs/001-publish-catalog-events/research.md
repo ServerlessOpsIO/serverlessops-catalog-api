@@ -30,7 +30,7 @@ DynamoDB stream `eventName` is the most direct committed-state signal after pers
 ## Decision: Discover destination via SSM parameters using required naming convention
 
 **Rationale**:  
-Feature spec requires centralized discovery rather than hardcoding. The plan will read/write parameter names under `/${Domain}/${System}/${Component}/${CodeBranch}/...` and keep compatibility with referenced consumer expectation for `SqsQueueName`.
+Feature spec requires centralized discovery rather than hardcoding. Queue name and URL use separate parameters under `/${Domain}/${System}/${Component}/${CodeBranch}/...`; the `SqsQueueArn` CloudFormation parameter resolves the SSM key `/platform/backstage/backstage-app/main/SqsQueueArn`.
 
 **Alternatives considered**:
 - Hardcode queue URL/ARN in template or code (rejected: environment coupling and violates FR-005).
@@ -62,4 +62,3 @@ Per-entity ordering can be preserved by deriving FIFO message grouping from enti
 **Alternatives considered**:
 - Global FIFO message group for all events (rejected: unnecessary throughput bottleneck).
 - Standard queue without message groups (rejected: cannot guarantee ordered processing for sequential entity updates).
-

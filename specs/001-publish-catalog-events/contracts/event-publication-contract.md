@@ -14,6 +14,7 @@ Defines producer-side delivery contract for publishing catalog mutation events f
 - Required parameter names:
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName`
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`
+- The `SqsQueueArn` CloudFormation parameter MUST resolve the SSM parameter `/platform/backstage/backstage-app/main/SqsQueueArn` for the EventBridge Pipe target and scoped IAM policy.
 - `SqsQueueName` MUST remain present for compatibility with the referenced consumer spec in `ServerlessOpsIO/backstage-app/specs/010-catalog-event-updates`.
 - `SqsQueueName` and `SqsQueueUrl` MUST resolve to the same queue resource.
 
@@ -24,7 +25,7 @@ Defines producer-side delivery contract for publishing catalog mutation events f
   - DynamoDB stream `INSERT` -> `create`
   - DynamoDB stream `MODIFY` -> `update`
   - DynamoDB stream `REMOVE` -> `delete`
-- Producer MUST emit one message per committed mutation.
+- Producer MUST create one logical event per committed mutation. Delivery is at-least-once, so consumers may receive duplicate messages and MUST deduplicate by stable `eventId`.
 - Producer MUST include:
   - `eventId` (unique per logical mutation, stable on retries)
   - `entityRef`
@@ -43,4 +44,3 @@ Defines producer-side delivery contract for publishing catalog mutation events f
 - Stream read permissions: DynamoDB stream read actions on the table stream ARN only.
 - Queue publish permissions: send/get attributes/url actions scoped to the target queue ARN only.
 - No wildcard (`*`) resource scope unless a specific AWS API requires it and is documented.
-

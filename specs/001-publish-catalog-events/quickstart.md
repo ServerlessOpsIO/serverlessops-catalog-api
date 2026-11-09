@@ -9,6 +9,7 @@ This guide validates end-to-end behavior for publishing catalog mutation events 
 - SSM parameters present for queue discovery:
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueName`
   - `/${Domain}/${System}/${Component}/${CodeBranch}/SqsQueueUrl`
+- The SSM parameter `/platform/backstage/backstage-app/main/SqsQueueArn` is available to resolve the `SqsQueueArn` CloudFormation parameter.
 - SAM CLI, Node.js, and Yarn available locally.
 
 ## 1) Validate schema and infrastructure definitions
@@ -45,6 +46,7 @@ aws ssm get-parameter --name "/${Domain}/${System}/${Component}/${CodeBranch}/Sq
 
 Expected outcome:
 - Both parameters exist and refer to the same FIFO queue.
+- The resolved `SqsQueueArn` refers to that same queue.
 
 ## 4) Exercise create/update/delete mutations
 
@@ -71,6 +73,7 @@ Execute rapid sequential updates for the same entity.
 Expected outcome:
 - Events are delivered in per-entity FIFO order.
 - Re-deliveries (if any) retain same `eventId` for the same logical change.
+- Consumers can deduplicate duplicate deliveries by `eventId`.
 
 ## 7) Validate failure visibility path
 
@@ -86,4 +89,3 @@ Expected outcome:
 - Data model: `specs/001-publish-catalog-events/data-model.md`
 - Publication contract: `specs/001-publish-catalog-events/contracts/event-publication-contract.md`
 - Consumer reference spec: `ServerlessOpsIO/backstage-app/specs/010-catalog-event-updates`
-
