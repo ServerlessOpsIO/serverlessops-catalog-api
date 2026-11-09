@@ -28,8 +28,12 @@ Defines producer-side delivery contract for publishing catalog mutation events f
 - Producer MUST create one logical event per committed mutation. Delivery is at-least-once, so consumers may receive duplicate messages and MUST deduplicate by stable `eventId`.
 - Producer MUST include:
   - `eventId` (unique per logical mutation, stable on retries)
-  - `entityRef`
-  - `entity` snapshot
+  - `entityRef`, copied from the persisted DynamoDB sort key (`dynamodb.Keys.sk.S`) in `namespace/kind/name` form
+  - `entity`, copied from the persisted `NewImage` for creates/updates or `OldImage` for deletes
+- The producer's `entity` value is a DynamoDB Stream AttributeValue image, including `pk`, `sk`, and `itemType`; it is not a plain Backstage entity.
+- Consumers MUST verify that `entityRef` matches the persisted image identity, unmarshall DynamoDB AttributeValues, and remove table-only `pk`, `sk`, and `itemType` fields before dispatching the Backstage entity.
+- Consumers SHOULD continue accepting legacy messages whose `entity` is already a plain Backstage entity during migration.
+- Pipe input templates MUST include every required message field and derive entity identity only from the persisted stream record, never from request-only data.
 
 ## Ordering and delivery semantics
 

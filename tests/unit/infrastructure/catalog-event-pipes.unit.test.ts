@@ -71,5 +71,20 @@ describe('catalog event pipes', () => {
         InputTemplate: expect.stringContaining(`"changeType": "${changeType}"`),
       }),
     )
+    expect(pipe.Properties?.TargetParameters).toEqual(
+      expect.objectContaining({
+        InputTemplate: expect.stringContaining('"eventId": "<$.eventID>"'),
+      }),
+    )
+    expect(pipe.Properties?.TargetParameters).toEqual(
+      expect.objectContaining({
+        InputTemplate: expect.stringContaining('"entityRef": "<$.dynamodb.Keys.sk.S>"'),
+      }),
+    )
+    expect(pipe.Properties?.TargetParameters).toEqual(
+      expect.objectContaining({
+        InputTemplate: expect.stringContaining('"schemaVersion": "1"'),
+      }),
+    )
   })
 })

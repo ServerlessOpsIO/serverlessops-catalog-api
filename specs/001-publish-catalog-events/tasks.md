@@ -59,14 +59,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T015 [P] [US2] Add schema validation tests for emitted payload fixtures in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts`
-- [ ] T016 [P] [US2] Add negative-case schema tests in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts` to assert "`changeType` unsupported values are rejected." and "`entity.metadata.name` is required for all message types."
+- [X] T015 [P] [US2] Add schema validation tests for emitted payload fixtures in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts`
+- [X] T016 [P] [US2] Add negative-case schema tests in `tests/unit/contracts/catalog-change-event.schema.unit.test.ts` to assert "`changeType` unsupported values are rejected." and "`entity.metadata.name` is required for all message types."
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Update pipe input templates in `template.yaml` so required payload fields are always present and "Payload must satisfy `catalog-change-event.schema.json`."
-- [ ] T018 [US2] Map identity fields from stream records in `template.yaml` so "Identity in event payload must be derived from persisted keys/attributes, not request-only values." and "`entityRef` must match `^[^/]+/[^/]+/[^/]+$`."
-- [ ] T019 [US2] Align producer contract details and references in `specs/001-publish-catalog-events/contracts/event-publication-contract.md`
+- [X] T017 [US2] Update pipe input templates in `template.yaml` so required payload fields are always present and "Payload must satisfy `catalog-change-event.schema.json`."
+- [X] T018 [US2] Map identity fields from stream records in `template.yaml` so "Identity in event payload must be derived from persisted keys/attributes, not request-only values." and "`entityRef` must match `^[^/]+/[^/]+/[^/]+$`."
+- [X] T019 [US2] Align producer contract details and references in `specs/001-publish-catalog-events/contracts/event-publication-contract.md`
 
 **Checkpoint**: User Story 2 passes independent schema/contract validation.
 
