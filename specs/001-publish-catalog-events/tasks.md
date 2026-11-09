@@ -37,15 +37,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Add infrastructure unit tests for stream enablement and pipe wiring in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts`
+- [X] T009 [P] [US1] Add infrastructure unit tests for stream enablement and pipe wiring in `tests/unit/infrastructure/catalog-event-pipes.unit.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add INSERT pipe in `template.yaml` mapping DynamoDB `INSERT` to `changeType=create` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T011 [US1] Add MODIFY pipe in `template.yaml` mapping DynamoDB `MODIFY` to `changeType=update` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T012 [US1] Add REMOVE pipe in `template.yaml` mapping DynamoDB `REMOVE` to `changeType=delete` while enforcing "Stream publication only applies to `itemType = entity`."
-- [ ] T013 [US1] Configure FIFO ordering/dedup parameters in `template.yaml` so per-entity ordering is preserved and retries reuse stable event identifiers
-- [ ] T014 [US1] Update verification steps for create/update/delete publication in `specs/001-publish-catalog-events/quickstart.md`
+- [X] T010 [US1] Add INSERT pipe in `template.yaml` mapping DynamoDB `INSERT` to `changeType=create` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T011 [US1] Add MODIFY pipe in `template.yaml` mapping DynamoDB `MODIFY` to `changeType=update` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T012 [US1] Add REMOVE pipe in `template.yaml` mapping DynamoDB `REMOVE` to `changeType=delete` while enforcing "Stream publication only applies to `itemType = entity`."
+- [X] T013 [US1] Configure FIFO ordering/dedup parameters in `template.yaml` so per-entity ordering is preserved and retries reuse stable event identifiers
+- [X] T014 [US1] Update verification steps for create/update/delete publication in `specs/001-publish-catalog-events/quickstart.md`
 
 **Checkpoint**: User Story 1 works independently and satisfies MVP publication flow.
 

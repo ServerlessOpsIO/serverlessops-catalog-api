@@ -50,21 +50,26 @@ Expected outcome:
 
 ## 4) Exercise create/update/delete mutations
 
-Invoke the API endpoints (create, update/upsert, delete) with valid entity payloads.
+Using a test entity, invoke the create endpoint, update/upsert it, and then delete it.
 
 Expected outcome:
-- Successful mutations return existing success codes.
-- Failed mutations that do not persist changes do not produce events.
+- Each committed mutation produces one matching event: `create`, `update`, then `delete`.
+- Create and update events contain the DynamoDB `NewImage`; delete events contain `OldImage`.
+- `entityRef` matches the entity's persisted DynamoDB sort key.
+- Internal table rows with an `itemType` other than `entity` do not produce events.
+- FIFO message group IDs use the persisted entity sort key, preserving per-entity ordering.
 
 ## 5) Inspect SQS messages and validate contract
 
-Read queue messages and validate each payload against:
-- `specs/001-publish-catalog-events/contracts/catalog-change-event.schema.json`
+Read queue messages and inspect the stream-derived payload:
+- `eventId` remains stable for retries of the same stream record.
+- `changeType` maps to the DynamoDB stream operation.
+- `entity` contains DynamoDB AttributeValue data from the appropriate stream image.
 
 Expected outcome per message:
 - Contains `eventId`, `changeType`, `entityRef`, `entity`.
-- `changeType` matches mutation (`create`, `update`, `delete`).
-- `entityRef` and `entity` identity fields align.
+- `entityRef` matches the identity fields in the typed DynamoDB image.
+- The consumer unmarshals the image and removes the table-only `pk`, `sk`, and `itemType` fields before processing the Backstage entity.
 
 ## 6) Validate ordering and deduplication behavior
 

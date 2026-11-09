@@ -127,6 +127,102 @@ Resources:
                   - logs:PutLogEvents
                 Resource: !Sub '${CatalogEventPipeLogGroup.Arn}:*'
 
+  CatalogEventInsertPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["INSERT"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "create",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.NewImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
+  CatalogEventModifyPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["MODIFY"],"dynamodb":{"NewImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "update",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.NewImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
+  CatalogEventRemovePipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Source: !GetAtt DdbTable.StreamArn
+      Target: !Ref SqsQueueArn
+      RoleArn: !GetAtt CatalogEventPipeRole.Arn
+      DesiredState: RUNNING
+      SourceParameters:
+        DynamoDBStreamParameters:
+          StartingPosition: LATEST
+          BatchSize: 1
+        FilterCriteria:
+          Filters:
+            - Pattern: '{"eventName":["REMOVE"],"dynamodb":{"OldImage":{"itemType":{"S":["entity"]}}}}'
+      TargetParameters:
+        InputTemplate: >-
+          {
+            "eventId": "<$.eventID>",
+            "changeType": "delete",
+            "entityRef": "<$.dynamodb.Keys.sk.S>",
+            "entity": <$.dynamodb.OldImage>,
+            "source": "serverlessops-catalog-api",
+            "schemaVersion": "1"
+          }
+        SqsQueueParameters:
+          MessageGroupId: $.dynamodb.Keys.sk.S
+          MessageDeduplicationId: $.eventID
+      LogConfiguration:
+        Level: ERROR
+        CloudwatchLogsLogDestination:
+          LogGroupArn: !GetAtt CatalogEventPipeLogGroup.Arn
+
   CatalogEventPipeFailureMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
