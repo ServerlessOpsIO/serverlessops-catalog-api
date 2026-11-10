@@ -5,8 +5,18 @@ import {
   loadSamTemplate,
 } from '../../support/template-resource-loader.js'
 
+const MUTATION_PIPE_IDS = [
+  'CatalogEventInsertPipe',
+  'CatalogEventModifyPipe',
+  'CatalogEventRemovePipe',
+]
+
 describe('catalog event pipes', () => {
   const template = loadSamTemplate()
+  const getMutationPipes = () =>
+    MUTATION_PIPE_IDS.map(
+      logicalId => [logicalId, getSamResource(template, logicalId)] as const,
+    )
 
   it('enables a stream with both images on the entity table', () => {
     const table = getSamResource(template, 'DdbTable')
@@ -17,9 +27,15 @@ describe('catalog event pipes', () => {
   })
 
   it('connects each mutation pipe to the table stream and configured FIFO queue', () => {
-    const pipes = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+    const pipes = getMutationPipes()
+    const queuePipeIds = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+      .filter(([, pipe]) => {
+        const target = pipe.Properties?.Target as { Ref?: string } | undefined
+        return target?.Ref === 'SqsQueueArn'
+      })
+      .map(([logicalId]) => logicalId)
 
-    expect(pipes).toHaveLength(3)
+    expect(queuePipeIds.sort()).toEqual([...MUTATION_PIPE_IDS].sort())
 
     for (const [, pipe] of pipes) {
       expect(pipe.Properties).toEqual(
@@ -34,7 +50,7 @@ describe('catalog event pipes', () => {
 
   it('resolves the target ARN from the consumer queue SSM parameter', () => {
     const parameter = template.Parameters?.SqsQueueArn
-    const pipes = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+    const pipes = getMutationPipes()
 
     expect(parameter).toEqual(
       {
@@ -50,7 +66,7 @@ describe('catalog event pipes', () => {
 
   it('configures bounded retries and a source failure queue for every pipe', () => {
     const failureQueue = getSamResource(template, 'CatalogEventPipeFailureQueue')
-    const pipes = getSamResourcesByType(template, 'AWS::Pipes::Pipe')
+    const pipes = getMutationPipes()
     const role = getSamResource(template, 'CatalogEventPipeRole')
     const alarm = getSamResource(template, 'CatalogEventPipeFailureAlarm')
 
@@ -159,6 +175,51 @@ describe('catalog event pipes', () => {
       expect.objectContaining({
         InputTemplate: expect.stringContaining('"schemaVersion": "1"'),
       }),
+    )
+  })
+
+  it('logs every stream record to a dedicated log group without touching the catalog queue', () => {
+    const pipe = getSamResource(template, 'CatalogEventLogPipe')
+    const role = getSamResource(template, 'CatalogEventLogPipeRole')
+
+    expect(pipe.Properties).toEqual(
+      expect.objectContaining({
+        Source: { 'Fn::GetAtt': ['DdbTable', 'StreamArn'] },
+        Target: {
+          'Fn::Sub':
+            'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:${CatalogEventStreamLogGroup}',
+        },
+        RoleArn: { 'Fn::GetAtt': ['CatalogEventLogPipeRole', 'Arn'] },
+        TargetParameters: {
+          CloudWatchLogsParameters: {
+            LogStreamName: { Ref: 'CatalogEventStreamLogStream' },
+          },
+        },
+      }),
+    )
+    expect(pipe.Properties?.SourceParameters).not.toHaveProperty('FilterCriteria')
+    expect(pipe.Properties?.SourceParameters).toEqual({
+      DynamoDBStreamParameters: expect.not.objectContaining({
+        DeadLetterConfig: expect.anything(),
+      }),
+    })
+
+    const statements = (
+      role.Properties?.Policies as Array<{
+        PolicyDocument: { Statement: Array<{ Action: string[]; Resource: unknown }> }
+      }>
+    ).flatMap(policy => policy.PolicyDocument.Statement)
+    expect(statements.flatMap(statement => statement.Action)).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^sqs:/)]),
+    )
+    expect(statements).toEqual(
+      expect.arrayContaining([
+        {
+          Effect: 'Allow',
+          Action: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+          Resource: { 'Fn::Sub': '${CatalogEventStreamLogGroup.Arn}:*' },
+        },
+      ]),
     )
   })
 })
