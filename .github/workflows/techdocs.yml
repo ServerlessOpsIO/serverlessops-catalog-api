@@ -1,0 +1,130 @@
+name: TechDocs
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'specs/**'
+      - '.github/workflows/techdocs.yml'
+
+concurrency:
+  group: techdocs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    name: Discover specs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      specs: ${{ steps.specs.outputs.specs }}
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v1
+
+      # Every directory under specs/ that has a spec.md is a spec.
+      - name: List specs
+        id: specs
+        run: |
+          specs=$(
+            find specs -mindepth 2 -maxdepth 2 -name spec.md -print 2>/dev/null \
+              | xargs -r -n1 dirname \
+              | xargs -r -n1 basename \
+              | sort \
+              | jq -R -s -c 'split("\n") | map(select(length > 0))'
+          )
+          echo "specs=${specs}" >> "$GITHUB_OUTPUT"
+          echo "Found specs: ${specs}"
+
+  build:
+    name: Build ${{ matrix.spec }}
+    needs:
+      - discover
+    if: needs.discover.outputs.specs != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: ${{ fromJson(needs.discover.outputs.specs) }}
+    env:
+      SPEC: ${{ matrix.spec }}
+      SPEC_DIR: specs/${{ matrix.spec }}
+      SOURCE_DIR: ${{ github.workspace }}/.techdocs/source
+      SITE_DIR: ${{ github.workspace }}/.techdocs/site
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v1
+
+      - name: Setup Node
+        uses: ServerlessOpsIO/gha-setup-node@v1
+        with:
+          node_version: '24'
+
+      - name: Setup Python environment
+        uses: ServerlessOpsIO/gha-setup-python@v1
+        with:
+          python_version: '3.14'
+
+      - name: Install MkDocs
+        run: pip install 'mkdocs-techdocs-core==1.*'
+
+      # Spec directories hold their Markdown at the top level and have no
+      # mkdocs.yml, so lay the spec out as a MkDocs project before building.
+      - name: Stage MkDocs project
+        run: |
+          mkdir -p "${SOURCE_DIR}/docs"
+          cp -R "${SPEC_DIR}/." "${SOURCE_DIR}/docs/"
+          rm -f "${SOURCE_DIR}/docs/catalog-info.yaml"
+
+          title=''
+          description=''
+          if [ -f "${SPEC_DIR}/catalog-info.yaml" ]; then
+            title=$(yq 'select(document_index == 0) | .metadata.title // .metadata.name // ""' "${SPEC_DIR}/catalog-info.yaml")
+            description=$(yq 'select(document_index == 0) | .metadata.description // ""' "${SPEC_DIR}/catalog-info.yaml")
+          fi
+          export TITLE="${title:-$SPEC}"
+          export DESCRIPTION="${description}"
+
+          yq -n '
+            .site_name = strenv(TITLE) |
+            .site_description = strenv(DESCRIPTION) |
+            .docs_dir = "docs" |
+            .plugins = ["techdocs-core"]
+          ' > "${SOURCE_DIR}/mkdocs.yml"
+
+          # TechDocs needs a landing page at the site root.
+          if [ ! -f "${SOURCE_DIR}/docs/index.md" ]; then
+            {
+              printf '# %s\n\n' "${TITLE}"
+              if [ -n "${DESCRIPTION}" ]; then
+                printf '%s\n\n' "${DESCRIPTION}"
+              fi
+              for doc in spec plan research data-model quickstart tasks; do
+                if [ -f "${SOURCE_DIR}/docs/${doc}.md" ]; then
+                  printf -- '- [%s](%s.md)\n' "${doc}" "${doc}"
+                fi
+              done
+            } > "${SOURCE_DIR}/docs/index.md"
+          fi
+
+          cat "${SOURCE_DIR}/mkdocs.yml"
+
+      - name: Build TechDocs
+        run: |
+          npx --yes @techdocs/cli generate \
+            --no-docker \
+            --verbose \
+            --source-dir "${SOURCE_DIR}" \
+            --output-dir "${SITE_DIR}"
+
+      - name: Upload TechDocs site
+        uses: actions/upload-artifact@v7
+        with:
+          name: techdocs-${{ matrix.spec }}
+          path: ${{ env.SITE_DIR }}
+          if-no-files-found: error
