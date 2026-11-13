@@ -9,7 +9,9 @@ on:
 
 concurrency:
   group: techdocs-${{ github.ref }}
-  cancel-in-progress: true
+  # Runs only build the specs their own push changed, so a newer run must not
+  # cancel an older one.
+  cancel-in-progress: false
 
 jobs:
   discover:
@@ -24,19 +26,50 @@ jobs:
       - name: Setup job workspace
         uses: ServerlessOpsIO/gha-setup-workspace@v1
 
-      # Every directory under specs/ that has a spec.md is a spec.
+      # Every directory under specs/ that has a spec.md is a spec. A push only
+      # builds the specs it changed. Everything is built on a manual run, on the
+      # first push of a branch, when this workflow changes, or when the changed
+      # files cannot be determined.
       - name: List specs
         id: specs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
         run: |
-          specs=$(
+          all=$(
             find specs -mindepth 2 -maxdepth 2 -name spec.md -print 2>/dev/null \
               | xargs -r -n1 dirname \
               | xargs -r -n1 basename \
-              | sort \
-              | jq -R -s -c 'split("\n") | map(select(length > 0))'
+              | sort
           )
+
+          build_all=''
+          changed=''
+          if [ "${EVENT_NAME}" != 'push' ]; then
+            build_all='not a push'
+          elif [ -z "${BEFORE}" ] || [ "${BEFORE}" = '0000000000000000000000000000000000000000' ]; then
+            build_all='first push of this branch'
+          elif ! changed=$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BEFORE}...${GITHUB_SHA}" --jq '.files[].filename'); then
+            build_all='could not compare commits'
+          elif [ "$(printf '%s\n' "${changed}" | wc -l)" -ge 300 ]; then
+            # The compare API lists at most 300 files.
+            build_all='too many changed files to list'
+          elif printf '%s\n' "${changed}" | grep -qx '.github/workflows/techdocs.yml'; then
+            build_all='workflow changed'
+          fi
+
+          if [ -n "${build_all}" ]; then
+            echo "Building all specs: ${build_all}"
+            selected="${all}"
+          else
+            changed_specs=$(printf '%s\n' "${changed}" | sed -n 's|^specs/\([^/]*\)/.*|\1|p' | sort -u)
+            selected=$(printf '%s\n' "${all}" | grep -Fx -f <(printf '%s\n' "${changed_specs}") || true)
+          fi
+
+          specs=$(printf '%s\n' "${selected}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "specs=${specs}" >> "$GITHUB_OUTPUT"
-          echo "Found specs: ${specs}"
+          echo "Specs to build: ${specs}"
 
   build:
     name: Build ${{ matrix.spec }}
