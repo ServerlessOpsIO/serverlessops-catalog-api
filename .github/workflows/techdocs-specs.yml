@@ -1,42 +1,39 @@
-name: TechDocs
+name: Techdocs - Specs
+
+# Builds each directory under specs/ that has a spec.md, and publishes it as
+# the TechDocs of the entity in that directory's catalog-info.yaml.
 
 on:
   workflow_dispatch:
   push:
     paths:
       - 'specs/**'
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - '.github/workflows/techdocs.yml'
+      - '.github/workflows/techdocs-specs.yml'
 
 concurrency:
-  group: techdocs-${{ github.ref }}
+  group: techdocs-specs-${{ github.ref }}
   # Runs only build what their own push changed, so a newer run must not
   # cancel an older one.
   cancel-in-progress: false
 
 jobs:
   discover:
-    name: Discover docs
+    name: Discover specs
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      targets: ${{ steps.targets.outputs.targets }}
+      specs: ${{ steps.specs.outputs.specs }}
 
     steps:
       - name: Setup job workspace
-        uses: ServerlessOpsIO/gha-setup-workspace@v1
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
 
-      # There are two kinds of TechDocs target, and a project may have either,
-      # both or neither:
-      #   - each directory under specs/ that has a spec.md
-      #   - the docs/ directory, which documents the project itself
-      # A push only builds the targets it changed. Everything is built on a
+      # A push only builds the specs it changed. Every spec is built on a
       # manual run, on the first push of a branch, when this workflow changes,
       # or when the changed files cannot be determined.
-      - name: List targets
-        id: targets
+      - name: List specs
+        id: specs
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
@@ -48,10 +45,6 @@ jobs:
               | xargs -r -n1 basename \
               | sort
           )
-          has_docs=''
-          if [ -n "$(find docs -name '*.md' -print -quit 2>/dev/null)" ]; then
-            has_docs='true'
-          fi
 
           build_all=''
           changed=''
@@ -64,68 +57,42 @@ jobs:
           elif [ "$(printf '%s\n' "${changed}" | wc -l)" -ge 300 ]; then
             # The compare API lists at most 300 files.
             build_all='too many changed files to list'
-          elif printf '%s\n' "${changed}" | grep -qx '.github/workflows/techdocs.yml'; then
+          elif printf '%s\n' "${changed}" | grep -qx '.github/workflows/techdocs-specs.yml'; then
             build_all='workflow changed'
           fi
 
           if [ -n "${build_all}" ]; then
-            echo "Building everything: ${build_all}"
+            echo "Building every spec: ${build_all}"
             specs="${all_specs}"
-            docs="${has_docs}"
           else
             changed_specs=$(printf '%s\n' "${changed}" | sed -n 's|^specs/\([^/]*\)/.*|\1|p' | sort -u)
             specs=$(printf '%s\n' "${all_specs}" | grep -Fx -f <(printf '%s\n' "${changed_specs}") || true)
-            docs=''
-            if [ -n "${has_docs}" ] && printf '%s\n' "${changed}" | grep -qE '^(docs/|mkdocs\.yml$)'; then
-              docs='true'
-            fi
           fi
 
-          # name:    job and artifact name
-          # dir:     where the Markdown lives
-          # catalog: the catalog-info.yaml of the entity the docs belong to
-          # content: the folder name used for the Markdown in the staged project
-          targets=$(
-            printf '%s\n' "${specs}" | jq -R -s -c --arg docs "${docs}" '
-              (split("\n") | map(select(length > 0) | {
-                name: .,
-                dir: ("specs/" + .),
-                catalog: ("specs/" + . + "/catalog-info.yaml"),
-                content: "spec"
-              }))
-              + (if $docs == "true" then [{
-                name: "docs",
-                dir: "docs",
-                catalog: "catalog-info.yaml",
-                content: "docs"
-              }] else [] end)
-            '
-          )
-          echo "targets=${targets}" >> "$GITHUB_OUTPUT"
-          echo "Targets to build: ${targets}"
+          specs_json=$(printf '%s\n' "${specs}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "specs=${specs_json}" >> "$GITHUB_OUTPUT"
+          echo "Specs to build: ${specs_json}"
 
   build:
-    name: Build ${{ matrix.target.name }}
+    name: Build ${{ matrix.spec }}
     needs:
       - discover
-    if: needs.discover.outputs.targets != '[]'
+    if: needs.discover.outputs.specs != '[]'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        target: ${{ fromJson(needs.discover.outputs.targets) }}
+        spec: ${{ fromJson(needs.discover.outputs.specs) }}
     env:
-      TARGET_NAME: ${{ matrix.target.name }}
-      TARGET_DIR: ${{ matrix.target.dir }}
-      CATALOG_FILE: ${{ matrix.target.catalog }}
-      CONTENT_DIR: ${{ matrix.target.content }}
+      SPEC_NAME: ${{ matrix.spec }}
+      SPEC_DIR: specs/${{ matrix.spec }}
+      CATALOG_FILE: specs/${{ matrix.spec }}/catalog-info.yaml
 
     steps:
       - name: Setup job workspace
-        uses: ServerlessOpsIO/gha-setup-workspace@v1
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
 
       - name: Setup NodeJS
         id: install-node
@@ -142,16 +109,15 @@ jobs:
       - name: Install MkDocs
         run: pip install 'mkdocs-techdocs-core==1.*'
 
-      # Lay the target out as a MkDocs project in $RUNNER_TEMP/build, outside the
-      # git checkout. Spec directories have no mkdocs.yml, and docs/ may not have
-      # one either, so one is generated unless the project supplies its own.
+      # Lay the spec out as a MkDocs project in $RUNNER_TEMP/build, outside the
+      # git checkout. Spec directories have no mkdocs.yml, so one is generated.
       - name: Stage MkDocs project
         env:
           WORK_DIR: ${{ runner.temp }}/build/source
         run: |
-          content="${WORK_DIR}/${CONTENT_DIR}"
+          content="${WORK_DIR}/spec"
           mkdir -p "${content}"
-          cp -R "${TARGET_DIR}/." "${content}/"
+          cp -R "${SPEC_DIR}/." "${content}/"
           rm -f "${content}/catalog-info.yaml"
 
           title=''
@@ -160,19 +126,15 @@ jobs:
             title=$(yq 'select(document_index == 0) | .metadata.title // .metadata.name // ""' "${CATALOG_FILE}")
             description=$(yq 'select(document_index == 0) | .metadata.description // ""' "${CATALOG_FILE}")
           fi
-          export TITLE="${title:-$TARGET_NAME}"
+          export TITLE="${title:-$SPEC_NAME}"
           export DESCRIPTION="${description}"
 
-          if [ "${TARGET_DIR}" = 'docs' ] && [ -f mkdocs.yml ]; then
-            cp mkdocs.yml "${WORK_DIR}/mkdocs.yml"
-          else
-            yq -n '
-              .site_name = strenv(TITLE) |
-              .site_description = strenv(DESCRIPTION) |
-              .docs_dir = strenv(CONTENT_DIR) |
-              .plugins = ["techdocs-core"]
-            ' > "${WORK_DIR}/mkdocs.yml"
-          fi
+          yq -n '
+            .site_name = strenv(TITLE) |
+            .site_description = strenv(DESCRIPTION) |
+            .docs_dir = "spec" |
+            .plugins = ["techdocs-core"]
+          ' > "${WORK_DIR}/mkdocs.yml"
 
           # TechDocs needs a landing page at the site root.
           if [ ! -f "${content}/index.md" ]; then
@@ -202,6 +164,52 @@ jobs:
             --source-dir "${WORK_DIR}" \
             --output-dir "${SITE_DIR}"
 
+      - name: Upload TechDocs site
+        uses: actions/upload-artifact@v7
+        with:
+          name: techdocs-${{ matrix.spec }}
+          path: ${{ runner.temp }}/build/site
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy ${{ matrix.spec }}
+    needs:
+      - discover
+      - build
+    # Runs even when some specs failed to build, so the ones that did build
+    # are still published. A spec that failed has no site to download and its
+    # deploy fails too.
+    if: ${{ !cancelled() && needs.discover.result == 'success' && needs.discover.outputs.specs != '[]' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: ${{ fromJson(needs.discover.outputs.specs) }}
+    env:
+      CATALOG_FILE: specs/${{ matrix.spec }}/catalog-info.yaml
+
+    steps:
+      # The catalog-info.yaml in the checkout names the entity to publish to.
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
+        with:
+          checkout_artifact: true
+
+      - name: Setup NodeJS
+        id: install-node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Download TechDocs site
+        uses: actions/download-artifact@v8
+        with:
+          name: techdocs-${{ matrix.spec }}
+          path: ${{ runner.temp }}/site
+
       - name: Assume AWS Credentials
         uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
         with:
@@ -209,10 +217,10 @@ jobs:
           deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
 
       # TechDocs are stored under the entity's namespace/kind/name, which comes
-      # from the catalog-info.yaml of the spec or, for docs/, of the project.
+      # from the spec's catalog-info.yaml.
       - name: Publish TechDocs
         env:
-          SITE_DIR: ${{ runner.temp }}/build/site
+          SITE_DIR: ${{ runner.temp }}/site
           TECHDOCS_BUCKET: ${{ vars.TECHDOCS_BUCKET }}
         run: |
           if [ -z "${TECHDOCS_BUCKET}" ]; then
@@ -231,10 +239,3 @@ jobs:
             --storage-name "${TECHDOCS_BUCKET}" \
             --entity "${entity}" \
             --directory "${SITE_DIR}"
-
-      - name: Upload TechDocs site
-        uses: actions/upload-artifact@v7
-        with:
-          name: techdocs-${{ matrix.target.name }}
-          path: ${{ runner.temp }}/build/site
-          if-no-files-found: error

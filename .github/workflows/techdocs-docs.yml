@@ -1,0 +1,190 @@
+name: Techdocs - Docs
+
+# Builds the docs/ directory, which documents the project itself, and
+# publishes it as the TechDocs of the entity in the root catalog-info.yaml.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/techdocs-docs.yml'
+
+concurrency:
+  group: techdocs-docs-${{ github.ref }}
+  # Let a publish finish instead of cancelling it part way through.
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check for docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      found: ${{ steps.docs.outputs.found }}
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
+
+      # A project may have no docs, in which case there is nothing to build.
+      - name: Look for Markdown
+        id: docs
+        run: |
+          if [ -n "$(find docs -name '*.md' -print -quit 2>/dev/null)" ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No Markdown files in docs/, nothing to build"
+          fi
+
+  build:
+    name: Build docs
+    needs:
+      - check
+    if: needs.check.outputs.found == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CATALOG_FILE: catalog-info.yaml
+
+    steps:
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
+
+      - name: Setup NodeJS
+        id: install-node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Setup Python
+        id: install-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install MkDocs
+        run: pip install 'mkdocs-techdocs-core==1.*'
+
+      # Lay docs/ out as a MkDocs project in $RUNNER_TEMP/build, outside the git
+      # checkout. A mkdocs.yml is generated unless the project supplies its own.
+      - name: Stage MkDocs project
+        env:
+          WORK_DIR: ${{ runner.temp }}/build/source
+        run: |
+          mkdir -p "${WORK_DIR}/docs"
+          cp -R docs/. "${WORK_DIR}/docs/"
+
+          title=''
+          description=''
+          if [ -f "${CATALOG_FILE}" ]; then
+            title=$(yq 'select(document_index == 0) | .metadata.title // .metadata.name // ""' "${CATALOG_FILE}")
+            description=$(yq 'select(document_index == 0) | .metadata.description // ""' "${CATALOG_FILE}")
+          fi
+          export TITLE="${title:-docs}"
+          export DESCRIPTION="${description}"
+
+          if [ -f mkdocs.yml ]; then
+            cp mkdocs.yml "${WORK_DIR}/mkdocs.yml"
+          else
+            yq -n '
+              .site_name = strenv(TITLE) |
+              .site_description = strenv(DESCRIPTION) |
+              .docs_dir = "docs" |
+              .plugins = ["techdocs-core"]
+            ' > "${WORK_DIR}/mkdocs.yml"
+          fi
+
+          # TechDocs needs a landing page at the site root.
+          if [ ! -f "${WORK_DIR}/docs/index.md" ]; then
+            {
+              printf '# %s\n\n' "${TITLE}"
+              if [ -n "${DESCRIPTION}" ]; then
+                printf '%s\n\n' "${DESCRIPTION}"
+              fi
+            } > "${WORK_DIR}/docs/index.md"
+          fi
+
+          cat "${WORK_DIR}/mkdocs.yml"
+
+      - name: Build TechDocs
+        env:
+          WORK_DIR: ${{ runner.temp }}/build/source
+          SITE_DIR: ${{ runner.temp }}/build/site
+        run: |
+          npx --yes @techdocs/cli generate \
+            --no-docker \
+            --verbose \
+            --source-dir "${WORK_DIR}" \
+            --output-dir "${SITE_DIR}"
+
+      - name: Upload TechDocs site
+        uses: actions/upload-artifact@v7
+        with:
+          name: techdocs-docs
+          path: ${{ runner.temp }}/build/site
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy docs
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      CATALOG_FILE: catalog-info.yaml
+
+    steps:
+      # The catalog-info.yaml in the checkout names the entity to publish to.
+      - name: Setup job workspace
+        uses: ServerlessOpsIO/gha-setup-workspace@v2
+        with:
+          checkout_artifact: true
+
+      - name: Setup NodeJS
+        id: install-node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Download TechDocs site
+        uses: actions/download-artifact@v8
+        with:
+          name: techdocs-docs
+          path: ${{ runner.temp }}/site
+
+      - name: Assume AWS Credentials
+        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
+        with:
+          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
+          deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
+
+      # TechDocs are stored under the entity's namespace/kind/name, which comes
+      # from the project's catalog-info.yaml.
+      - name: Publish TechDocs
+        env:
+          SITE_DIR: ${{ runner.temp }}/site
+          TECHDOCS_BUCKET: ${{ vars.TECHDOCS_BUCKET }}
+        run: |
+          if [ -z "${TECHDOCS_BUCKET}" ]; then
+            echo "::error::The TECHDOCS_BUCKET variable is not set"
+            exit 1
+          fi
+          if [ ! -f "${CATALOG_FILE}" ]; then
+            echo "::error::${CATALOG_FILE} is required to publish TechDocs"
+            exit 1
+          fi
+          entity=$(yq 'select(document_index == 0) | (.metadata.namespace // "default") + "/" + .kind + "/" + .metadata.name' "${CATALOG_FILE}")
+          echo "Publishing ${entity} to ${TECHDOCS_BUCKET}"
+
+          npx --yes @techdocs/cli publish \
+            --publisher-type awsS3 \
+            --storage-name "${TECHDOCS_BUCKET}" \
+            --entity "${entity}" \
+            --directory "${SITE_DIR}"
