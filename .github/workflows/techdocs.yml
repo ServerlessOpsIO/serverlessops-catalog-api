@@ -134,3 +134,9 @@ jobs:
           name: techdocs-${{ matrix.spec }}
           path: ${{ runner.temp }}/build/site
           if-no-files-found: error
+
+      - name: Show workdir
+        env:
+          WORK_DIR: ${{ runner.temp }}/build
+        run: |
+          tree "${WORK_DIR}"
