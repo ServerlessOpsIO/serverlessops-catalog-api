@@ -135,24 +135,17 @@ jobs:
           build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
           deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
 
-      - name: Get TechDocs bucket name
-        id: techdocs-bucket
-        run: |
-          bucket=$(
-            aws ssm get-parameter \
-              --name /platform/backstage/backstage-app/main/TechDocsBucketName \
-              --query Parameter.Value \
-              --output text
-          )
-          echo "name=${bucket}" >> "$GITHUB_OUTPUT"
-
       # TechDocs are stored under the entity's namespace/kind/name, which comes
       # from the spec's catalog-info.yaml.
       - name: Publish TechDocs
         env:
           SITE_DIR: ${{ runner.temp }}/build/site
-          TECHDOCS_BUCKET: ${{ steps.techdocs-bucket.outputs.name }}
+          TECHDOCS_BUCKET: ${{ vars.TECHDOCS_BUCKET }}
         run: |
+          if [ -z "${TECHDOCS_BUCKET}" ]; then
+            echo "::error::The TECHDOCS_BUCKET variable is not set"
+            exit 1
+          fi
           if [ ! -f "${SPEC_DIR}/catalog-info.yaml" ]; then
             echo "::error::${SPEC_DIR}/catalog-info.yaml is required to publish TechDocs"
             exit 1
