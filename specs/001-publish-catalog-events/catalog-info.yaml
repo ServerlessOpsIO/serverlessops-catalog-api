@@ -11,6 +11,7 @@ metadata:
     serverlessops.io/spec-issue: "13"
     serverlessops.io/spec-type: "feature"
     backstage.io/source-location: url:https://github.com/ServerlessOpsIO/serverlessops-catalog-api/tree/main/specs/001-publish-catalog-events/
+    backstage.io/techdocs-ref: dir:.
   tags:
     - speckit
   links:
