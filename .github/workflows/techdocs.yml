@@ -45,6 +45,7 @@ jobs:
     if: needs.discover.outputs.specs != '[]'
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: read
     strategy:
       fail-fast: false
@@ -128,15 +129,46 @@ jobs:
             --source-dir "${WORK_DIR}" \
             --output-dir "${SITE_DIR}"
 
+      - name: Assume AWS Credentials
+        uses: ServerlessOpsIO/gha-assume-aws-credentials@v1
+        with:
+          build_aws_account_id: ${{ secrets.AWS_CICD_ACCOUNT_ID }}
+          deploy_aws_account_id: ${{ secrets.DEPLOYMENT_ACCOUNT_ID }}
+
+      - name: Get TechDocs bucket name
+        id: techdocs-bucket
+        run: |
+          bucket=$(
+            aws ssm get-parameter \
+              --name /platform/backstage/backstage-app/main/TechDocsBucketName \
+              --query Parameter.Value \
+              --output text
+          )
+          echo "name=${bucket}" >> "$GITHUB_OUTPUT"
+
+      # TechDocs are stored under the entity's namespace/kind/name, which comes
+      # from the spec's catalog-info.yaml.
+      - name: Publish TechDocs
+        env:
+          SITE_DIR: ${{ runner.temp }}/build/site
+          TECHDOCS_BUCKET: ${{ steps.techdocs-bucket.outputs.name }}
+        run: |
+          if [ ! -f "${SPEC_DIR}/catalog-info.yaml" ]; then
+            echo "::error::${SPEC_DIR}/catalog-info.yaml is required to publish TechDocs"
+            exit 1
+          fi
+          entity=$(yq 'select(document_index == 0) | (.metadata.namespace // "default") + "/" + .kind + "/" + .metadata.name' "${SPEC_DIR}/catalog-info.yaml")
+          echo "Publishing ${entity} to ${TECHDOCS_BUCKET}"
+
+          npx --yes @techdocs/cli publish \
+            --publisher-type awsS3 \
+            --storage-name "${TECHDOCS_BUCKET}" \
+            --entity "${entity}" \
+            --directory "${SITE_DIR}"
+
       - name: Upload TechDocs site
         uses: actions/upload-artifact@v7
         with:
           name: techdocs-${{ matrix.spec }}
           path: ${{ runner.temp }}/build/site
           if-no-files-found: error
-
-      - name: Show workdir
-        env:
-          WORK_DIR: ${{ runner.temp }}/build
-        run: |
-          tree "${WORK_DIR}"
