@@ -53,8 +53,6 @@ jobs:
     env:
       SPEC: ${{ matrix.spec }}
       SPEC_DIR: specs/${{ matrix.spec }}
-      SOURCE_DIR: ${{ github.workspace }}/.techdocs/source
-      SITE_DIR: ${{ github.workspace }}/.techdocs/site
 
     steps:
       - name: Setup job workspace
@@ -77,11 +75,14 @@ jobs:
 
       # Spec directories hold their Markdown at the top level and have no
       # mkdocs.yml, so lay the spec out as a MkDocs project before building.
+      # All build work happens in $RUNNER_TEMP/build, outside the git checkout.
       - name: Stage MkDocs project
+        env:
+          WORK_DIR: ${{ runner.temp }}/build/source
         run: |
-          mkdir -p "${SOURCE_DIR}/docs"
-          cp -R "${SPEC_DIR}/." "${SOURCE_DIR}/docs/"
-          rm -f "${SOURCE_DIR}/docs/catalog-info.yaml"
+          mkdir -p "${WORK_DIR}/spec"
+          cp -R "${SPEC_DIR}/." "${WORK_DIR}/spec/"
+          rm -f "${WORK_DIR}/spec/catalog-info.yaml"
 
           title=''
           description=''
@@ -95,38 +96,41 @@ jobs:
           yq -n '
             .site_name = strenv(TITLE) |
             .site_description = strenv(DESCRIPTION) |
-            .docs_dir = "docs" |
+            .docs_dir = "spec" |
             .plugins = ["techdocs-core"]
-          ' > "${SOURCE_DIR}/mkdocs.yml"
+          ' > "${WORK_DIR}/mkdocs.yml"
 
           # TechDocs needs a landing page at the site root.
-          if [ ! -f "${SOURCE_DIR}/docs/index.md" ]; then
+          if [ ! -f "${WORK_DIR}/spec/index.md" ]; then
             {
               printf '# %s\n\n' "${TITLE}"
               if [ -n "${DESCRIPTION}" ]; then
                 printf '%s\n\n' "${DESCRIPTION}"
               fi
               for doc in spec plan research data-model quickstart tasks; do
-                if [ -f "${SOURCE_DIR}/docs/${doc}.md" ]; then
+                if [ -f "${WORK_DIR}/spec/${doc}.md" ]; then
                   printf -- '- [%s](%s.md)\n' "${doc}" "${doc}"
                 fi
               done
-            } > "${SOURCE_DIR}/docs/index.md"
+            } > "${WORK_DIR}/spec/index.md"
           fi
 
-          cat "${SOURCE_DIR}/mkdocs.yml"
+          cat "${WORK_DIR}/mkdocs.yml"
 
       - name: Build TechDocs
+        env:
+          WORK_DIR: ${{ runner.temp }}/build/source
+          SITE_DIR: ${{ runner.temp }}/build/site
         run: |
           npx --yes @techdocs/cli generate \
             --no-docker \
             --verbose \
-            --source-dir "${SOURCE_DIR}" \
+            --source-dir "${WORK_DIR}" \
             --output-dir "${SITE_DIR}"
 
       - name: Upload TechDocs site
         uses: actions/upload-artifact@v7
         with:
           name: techdocs-${{ matrix.spec }}
-          path: ${{ env.SITE_DIR }}
+          path: ${{ runner.temp }}/build/site
           if-no-files-found: error
